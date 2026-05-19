@@ -1,0 +1,4 @@
+body { max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; font-family: sans-serif; }
+details { background: #f4f4f4; padding: 10px; margin: 10px 0; border-radius: 5px; }
+summary { cursor: pointer; font-weight: bold; }
+footer { margin-top: 50px; font-size: 0.8em; color: #666; }
