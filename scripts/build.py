@@ -2,15 +2,29 @@ import os
 import subprocess
 from datetime import datetime
 
-def get_history(filepath):
+def get_blog_entries(filepath):
+    content = subprocess.check_output(["git", "show", f"HEAD:{filepath}"]).decode('utf-8')
+    entries = content.split('===')
     log = subprocess.check_output(["git", "log", "--pretty=format:%H|%ad", "--date=short", filepath]).decode('utf-8')
-    history = []
+    
+    commits = []
     for line in log.split('\n'):
         if not line: continue
         h, d = line.split('|')
-        content = subprocess.check_output(["git", "show", f"{h}:{filepath}"]).decode('utf-8')
-        history.append({'hash': h, 'date': d, 'content': content})
-    return history
+        commits.append({'hash': h, 'date': d})
+    
+    result = []
+    for idx, entry_content in enumerate(entries):
+        if not entry_content.strip(): continue
+        title = entry_content.strip().split('\n')[0].replace('#', '').strip()
+        filename = f"{filepath.replace('blog/', '').replace('.md', '')}_{idx}"
+        result.append({
+            'title': title,
+            'content': entry_content,
+            'filename': filename,
+            'commits': commits
+        })
+    return result
 
 def build():
     if not os.path.exists('dist'): os.makedirs('dist')
@@ -20,30 +34,35 @@ def build():
     footer = f"\n\n---\n<center>Copyright &copy; {copyright_year} Xinyu Yang</center>\n"
 
     blogs = [f for f in os.listdir('blog') if f.endswith('.md')]
-    years = {}
-    
+    catalog = {}
+
     for b in blogs:
-        history = get_history(os.path.join('blog', b))
-        year = history[0]['date'][:4]
-        if year not in years: years[year] = []
-        years[year].append({'name': b, 'history': history})
+        entries = get_blog_entries(os.path.join('blog', b))
+        for entry in entries:
+            year = entry['commits'][0]['date'][:4]
+            if year not in catalog: catalog[year] = []
+            
+            output_md = f"dist/{entry['filename']}.md"
+            md_content = f"# {entry['title']}\n\n{entry['content']}\n\n### History\n"
+            
+            for h in entry['commits']:
+                h_content = subprocess.check_output(["git", "show", f"{h['hash']}:{os.path.join('blog', b)}"]).decode('utf-8')
+                entries_at_h = h_content.split('===')
+                if len(entries_at_h) > int(entry['filename'].split('_')[-1]):
+                    target = entries_at_h[int(entry['filename'].split('_')[-1])]
+                    md_content += f"<details><summary>Commit: {h['hash'][:7]} | Date: {h['date']}</summary>\n\n{target}\n\n</details>\n"
+            
+            md_content += footer
+            with open(output_md, "w") as f: f.write(md_content)
+            subprocess.run(["pandoc", output_md, "--standalone", "--css=style.css", "-o", output_md.replace('.md', '.html')])
+            catalog[year].append({'title': entry['title'], 'url': f"{entry['filename']}.html"})
 
-    for year, posts in years.items():
-        md_content = f"# Archive {year}\n\n"
-        for p in posts:
-            latest = p['history'][0]
-            md_content += f"## {p['name']}\n**Latest Update:** {latest['date']} (`{latest['hash'][:7]}`)\n\n"
-            md_content += f"{latest['content']}\n\n"
-            md_content += "### History\n"
-            for h in p['history'][1:]:
-                md_content += f"<details><summary>Commit: {h['hash'][:7]} | Date: {h['date']}</summary>\n\n"
-                md_content += f"**Updated to:**\n\n{h['content']}\n\n</details>\n"
-        
-        md_content += footer
-        with open(f"dist/{year}.md", "w") as f: f.write(md_content)
-        subprocess.run(["pandoc", f"dist/{year}.md", "--standalone", "--css=style.css", "-o", f"dist/{year}.html"])
-
-    index_md = "# Blog Index\n\n" + "\n".join([f"- [{y}](./{y}.html)" for y in sorted(years.keys(), reverse=True)])
+    index_md = "# Blog Index\n\n"
+    for year in sorted(catalog.keys(), reverse=True):
+        index_md += f"## {year}\n"
+        for post in catalog[year]:
+            index_md += f"- [{post['title']}]({post['url']})\n"
+    
     index_md += footer
     with open("dist/index.md", "w") as f: f.write(index_md)
     subprocess.run(["pandoc", "dist/index.md", "--standalone", "--css=style.css", "-o", "dist/index.html"])
