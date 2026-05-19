@@ -7,3 +7,4 @@
 ===
 
 相当满意的效果除了cloudflare的cache导致了一些小的加载问题。终于可以在kconsole和termux（安卓最好的ui）里写blog了。
+以后对blog内容有什么疑问直接开issue或pr就好。
