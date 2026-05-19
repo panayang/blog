@@ -1,4 +1,4 @@
-name: Deploy Blog to GitHub Page
+name: Deploy Blog
 
 on:
   push:
