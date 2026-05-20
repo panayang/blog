@@ -32,7 +32,8 @@ def build():
     
     y = datetime.now().year
     year_range = "2026" if y == 2026 else f"2026-{y}"
-    footer = f"\n\n---\n<center><small>Copyright &copy; {year_range} Xinyu Yang</small></center>\n"
+    back_to_main = "[Back to main](https://panayang.blog.apich.org)"
+    footer = f"\n\n---\n<center><small>{back_to_main} | Copyright &copy; {year_range} Xinyu Yang</small></center>\n"
 
     blogs = [f for f in os.listdir('blog') if f.endswith('.md')]
     catalog = {}
