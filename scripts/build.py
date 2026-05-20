@@ -50,12 +50,17 @@ def build():
             md_content = f"**Last Modified:** `{latest['hash'][:7]}` on {latest['date']}\n\n"
             md_content += f"# {entry['title']}\n\n{entry['content']}\n\n### History\n"
             
+            last_content = None
+            idx = int(entry['filename'].split('_')[-1])
+            
             for h in entry['commits']:
                 h_content = subprocess.check_output(["git", "show", f"{h['hash']}:{os.path.join('blog', b)}"]).decode('utf-8')
                 es = h_content.split('===')
-                idx = int(entry['filename'].split('_')[-1])
                 if idx < len(es):
-                    md_content += f"<details><summary>Commit: {h['hash'][:7]} | Date: {h['date']}</summary>\n\n{es[idx]}\n\n</details>\n"
+                    current_entry_content = es[idx].strip()
+                    if current_entry_content != last_content:
+                        md_content += f"<details><summary>Commit: {h['hash'][:7]} | Date: {h['date']}</summary>\n\n{current_entry_content}\n\n</details>\n"
+                        last_content = current_entry_content
             
             with open(output_md, "w", encoding='utf-8') as f: f.write(md_content + footer)
             subprocess.run(["pandoc", output_md, "--standalone", "--css=style.css", "-o", output_md.replace('.md', '.html')])
