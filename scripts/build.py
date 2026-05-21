@@ -70,7 +70,7 @@ def build():
     for year, files in catalog.items():
         year_md = f"# Archive {year}\n\n"
         for b, posts in files.items():
-            year_md += f"## {b.replace('.md', '')}\n"
+            year_md += f"\n## {b.replace('.md', '')}\n"
             for p in posts:
                 year_md += f"* [{p['title']}]({p['url']})\n"
         with open(f"dist/{year}.md", "w", encoding='utf-8') as f: f.write(year_md + footer)
