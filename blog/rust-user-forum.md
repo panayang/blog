@@ -1,3 +1,5 @@
+# Releasing dtact v0.2.2 and rssn-advanced v0.1.0
+
 **Hello Rustaceans!**
 
 Today we are releasing dtact v0.2.2 and rssn-advanced v0.1.0, both of which are experimental, high-performance projects currently under development. Dtact is an async concurrent engine, and rssn-advanced is a new generation symbolic core for rssn. Both will be detailed below.
