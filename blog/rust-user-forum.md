@@ -14,22 +14,14 @@ This benchmark measures the time required to spawn and execute a batch of asynch
 
 | Task Scale | Runtime | Min Bound | Mean | Max Bound | Dtact Speedup |
 | --- | --- | --- | --- | --- | --- |
-| **1M** | Dtact | 103.92 ms | 104.92 ms | 105.94 ms | <br>**6.31x faster** 
- |
-|  | Tokio | 648.02 ms | 662.11 ms | 676.42 ms | Reference 
- |
-| **100k** | Dtact | 11.667 ms | 11.807 ms | 11.954 ms | <br>**5.34x faster** 
- |
-|  | Tokio | 61.064 ms | 63.067 ms | 65.043 ms | Reference 
- |
-| **10k** | Dtact | 1.9672 ms | 2.0144 ms | 2.0620 ms | <br>**2.63x faster** 
- |
-|  | Tokio | 5.1595 ms | 5.2986 ms | 5.4395 ms | Reference 
- |
-| **1k** | Dtact | 152.301 µs| 157.731 µs | 163.311 µs | <br>**4.76x faster** 
- |
-|  | Tokio | 719.65 µs | 750.891 µs | 783.411 µs | Reference 
- |
+| **1M** | Dtact | 103.92 ms | 104.92 ms | 105.94 ms | <br>**6.31x faster** |
+|  | Tokio | 648.02 ms | 662.11 ms | 676.42 ms | Reference |
+| **100k** | Dtact | 11.667 ms | 11.807 ms | 11.954 ms | <br>**5.34x faster** |
+|  | Tokio | 61.064 ms | 63.067 ms | 65.043 ms | Reference |
+| **10k** | Dtact | 1.9672 ms | 2.0144 ms | 2.0620 ms | <br>**2.63x faster** |
+|  | Tokio | 5.1595 ms | 5.2986 ms | 5.4395 ms | Reference |
+| **1k** | Dtact | 152.301 µs| 157.731 µs | 163.311 µs | <br>**4.76x faster** |
+|  | Tokio | 719.65 µs | 750.891 µs | 783.411 µs | Reference |
 
 ### Yield Efficiency
 
@@ -37,10 +29,8 @@ This test measures the time taken for 10 concurrent tasks to perform 100 coopera
 
 | Test Case | Runtime | Min Bound | Mean | Max Bound | Comparison |
 | --- | --- | --- | --- | --- | --- |
-| **10 tasks** | Dtact | 795.651 µs | 827.511 µs | 860.191 µs | ~4.41x slower 
- |
-|  | Tokio | 179.981 µs | 187.731 µs | 195.651 µs | <br>**4.41x faster** 
- |
+| **10 tasks** | Dtact | 795.651 µs | 827.511 µs | 860.191 µs | ~4.41x slower |
+|  | Tokio | 179.981 µs | 187.731 µs | 195.651 µs | <br>**4.41x faster** |
 
 ### Work Deflection (Hot Core) Performance
 
@@ -48,22 +38,14 @@ This benchmark simulates task dispatching and throttle coordination under heavy 
 
 | Task Scale | Runtime | Min Bound | Mean | Max Bound | Dtact Speedup |
 | --- | --- | --- | --- | --- | --- |
-| **10M** | Dtact | 1.6624 s | 1.6792 s | 1.6962 s | <br>**4.13x faster** 
- |
-|  | Tokio | 6.8482 s | 6.9386 s | 7.0291 s | Reference 
- |
-| **100k** | Dtact | 17.472 ms | 17.659 ms | 17.847 ms | <br>**2.84x faster** 
- |
-|  | Tokio | 49.110 ms | 51.112 ms | 53.114 ms | Reference 
- |
-| **10k** | Dtact | 2.4961 ms | 2.5315 ms | 2.5675 ms | <br>**2.31x faster** 
- |
-|  | Tokio | 5.7240 ms | 5.8411 ms | 5.9605 ms | Reference 
- |
-| **1k** | Dtact | 273.791 µs | 285.231 µs | 297.07 µs | <br>**2.70x faster** 
- |
-|  | Tokio | 739.641 µs | 769.841 µs | 801.701 µs | Reference 
- |
+| **10M** | Dtact | 1.6624 s | 1.6792 s | 1.6962 s | <br>**4.13x faster** |
+|  | Tokio | 6.8482 s | 6.9386 s | 7.0291 s | Reference |
+| **100k** | Dtact | 17.472 ms | 17.659 ms | 17.847 ms | <br>**2.84x faster** |
+|  | Tokio | 49.110 ms | 51.112 ms | 53.114 ms | Reference |
+| **10k** | Dtact | 2.4961 ms | 2.5315 ms | 2.5675 ms | <br>**2.31x faster** |
+|  | Tokio | 5.7240 ms | 5.8411 ms | 5.9605 ms | Reference |
+| **1k** | Dtact | 273.791 µs | 285.231 µs | 297.07 µs | <br>**2.70x faster** |
+|  | Tokio | 739.641 µs | 769.841 µs | 801.701 µs | Reference |
 
 The extensive use of `unsafe` and naked assembly in dtact may cause some doubt about this project, but we are striving to achieve higher engineering goals to ensure the project remains safe, and we are continually working on it. Also, special thanks to @newpavlov and @SkiFire13 for their helpful advice when we first tried the stackful approach in the bincode-next UAF backend async fiber module.
 
@@ -298,5 +280,155 @@ And the updated bench report:
   JIT maintains register-resident computation across the entire
   expression, paying one memory read/write per input element.
 ==============================================================================
+```
 
+v0.1.2:
+```text
+==========================================================================================
+   RSSN-Advanced JIT vs NumPy — Bulk Evaluation Benchmark
+   N = 1,000,000 rows per expression  |  5 repeats, best time reported
+==========================================================================================
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  1. Trivial (baseline)
+  x + y + 10.0
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.138 ms     2.14 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.075 ms     1.07 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         1.165 ms     1.16 ns/eval
+  NumPy (SIMD / C, hand-optimised)                3.336 ms     3.34 ns/eval
+  SymPy lambdify → numpy backend                  2.518 ms     2.52 ns/eval
+
+  JIT bulk        vs NumPy:  1.56x faster
+  JIT batch f64x2 vs NumPy:  3.10x faster
+  JIT batch f64x4 vs NumPy:  2.86x faster
+
+  Accuracy  bulk        max|Δ|=0.00e+00  ✔
+            batch f64x2 max|Δ|=0.00e+00  ✔
+            batch f64x4 max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~2 ops → ~15 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  2. Degree-4 polynomial  (x-y)^4  [2 vars]
+  x^4 - 4*x^3*y + 6*x^2*y^2 - 4*x*y^3 + y^4
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              3.388 ms     3.39 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.364 ms     1.36 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         1.292 ms     1.29 ns/eval
+  NumPy (SIMD / C, hand-optimised)               21.848 ms    21.85 ns/eval
+  SymPy lambdify → numpy backend                 20.799 ms    20.80 ns/eval
+
+  JIT bulk        vs NumPy:  6.45x faster
+  JIT batch f64x2 vs NumPy: 16.01x faster
+  JIT batch f64x4 vs NumPy: 16.92x faster
+
+  Accuracy  bulk        max|Δ|=5.46e-12  ✔
+            batch f64x2 max|Δ|=5.46e-12  ✔
+            batch f64x4 max|Δ|=5.46e-12  ✔
+
+  NumPy intermediate arrays: ~16 ops → ~122 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  3. Cubic surface  [3 vars, 10 terms]
+  x^3 + y^3 + z^3 - 3*x*y*z + x^2*y - x*y^2 + y^2*z - y*z^2 + z^2*x - z*x^2
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              4.163 ms     4.16 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.854 ms     1.85 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         1.761 ms     1.76 ns/eval
+  NumPy (SIMD / C, hand-optimised)               82.865 ms    82.86 ns/eval
+  SymPy lambdify → numpy backend                 94.077 ms    94.08 ns/eval
+
+  JIT bulk        vs NumPy: 19.90x faster
+  JIT batch f64x2 vs NumPy: 44.70x faster
+  JIT batch f64x4 vs NumPy: 47.07x faster
+
+  Accuracy  bulk        max|Δ|=2.84e-13  ✔
+            batch f64x2 max|Δ|=2.84e-13  ✔
+            batch f64x4 max|Δ|=2.84e-13  ✔
+
+  NumPy intermediate arrays: ~27 ops → ~206 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  4. Rational w/ CSE  [2 vars, repeated subexpr]
+  (x^2 + y^2) / (x^2 + y^2 + 1.0) + x*y*(x^2 - y^2) / (x^2 + y^2 + 1.0)^2
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              3.072 ms     3.07 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.428 ms     1.43 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         1.309 ms     1.31 ns/eval
+  NumPy (SIMD / C, hand-optimised)               16.425 ms    16.42 ns/eval
+  SymPy lambdify → numpy backend                 23.325 ms    23.32 ns/eval
+
+  JIT bulk        vs NumPy:  5.35x faster
+  JIT batch f64x2 vs NumPy: 11.50x faster
+  JIT batch f64x4 vs NumPy: 12.55x faster
+
+  Accuracy  bulk        max|Δ|=0.00e+00  ✔
+            batch f64x2 max|Δ|=0.00e+00  ✔
+            batch f64x4 max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~20 ops → ~153 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  5. Complex degree-5 polynomial [3 vars]
+  x^5 - y^5 + z^5 - 5*x^3*y^2 + 5*x^2*y^3 - 5*y^3*z^2 + 5*y^2*z^3 - 5*z^3*x^2 + 5*z^2*x^3 + x*y*z*(x^2 + y^2 + z^2)
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              5.588 ms     5.59 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           2.440 ms     2.44 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         2.442 ms     2.44 ns/eval
+  NumPy (SIMD / C, hand-optimised)              212.842 ms   212.84 ns/eval
+  SymPy lambdify → numpy backend                218.957 ms   218.96 ns/eval
+
+  JIT bulk        vs NumPy: 38.09x faster
+  JIT batch f64x2 vs NumPy: 87.24x faster
+  JIT batch f64x4 vs NumPy: 87.15x faster
+
+  Accuracy  bulk        max|Δ|=1.46e-11  ✔
+            batch f64x2 max|Δ|=1.46e-11  ✔
+            batch f64x4 max|Δ|=1.46e-11  ✔
+
+  NumPy intermediate arrays: ~44 ops → ~336 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  6. Positive Nested Sqrt [2 vars]
+  (x^2 + 1.0)^0.5 + (x^2 + y^2 + 1.0)^0.5 + (x^2 + y^2 + 2.0)^0.5
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              4.612 ms     4.61 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           2.210 ms     2.21 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         2.189 ms     2.19 ns/eval
+  NumPy (SIMD / C, hand-optimised)               16.013 ms    16.01 ns/eval
+  SymPy lambdify → numpy backend                 15.169 ms    15.17 ns/eval
+
+  JIT bulk        vs NumPy:  3.47x faster
+  JIT batch f64x2 vs NumPy:  7.24x faster
+  JIT batch f64x4 vs NumPy:  7.32x faster
+
+  Accuracy  bulk        max|Δ|=0.00e+00  ✔
+            batch f64x2 max|Δ|=0.00e+00  ✔
+            batch f64x4 max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~15 ops → ~114 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+==========================================================================================
+  SUMMARY: JIT speedup vs hand-optimised NumPy
+  Expression                                          bulk     f64x2       f64x4
+  ──────────────────────────────────────────────  ────────  ────────  ──────────
+  1. Trivial (baseline)                             1.56x    3.10x      2.86x
+  2. Degree-4 polynomial                            6.45x   16.01x     16.92x
+  3. Cubic surface                                 19.90x   44.70x     47.07x
+  4. Rational w/ CSE                                5.35x   11.50x     12.55x
+  5. Complex degree-5 polynomial [3 vars]          38.09x   87.24x     87.15x
+  6. Positive Nested Sqrt [2 vars]                  3.47x    7.24x      7.32x
+
+  Observation: speedup grows with expression complexity because
+  NumPy's intermediate arrays overflow L2/L3 cache at N=1,000,000.
+  JIT maintains register-resident computation across the entire
+  expression, paying one memory read/write per input element.
+==========================================================================================
 ```
