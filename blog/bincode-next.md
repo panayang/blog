@@ -14,6 +14,8 @@ Also, surprisingly the main `API` of v3 seems to me, from the high level `API` p
 
 Below are the introduction of the new functionalities and the design philosophy, it might be a little bit minimal as without LLM a human could not write that much, but I thought they are meaningful so, they will appear here. To avoid being thought as rage-baiting we will make no comparison here.
 
+---
+
 **Bit Packing**
 *Core Philosophy:* Explicit is better then Implicit; A serialization library shall not be in change of compression algorithms.
 We mainly use declarative `APIs` like, for example, like `#[bincode(bits = 1)]` with compile time assertions to control the encoding/decoding behavior and keep the KISS principle.
@@ -32,6 +34,8 @@ Mostly these are for `no-std` environments and more standard environments. You c
 And about the experimental `async-fiber` issue: it is already discussed in details here [https://users.rust-lang.org/t/discussion-on-synchronous-crate-concurrency-refactor-using-stackful-coroutines-model-in-rust/139246/9](https://users.rust-lang.org/t/discussion-on-synchronous-crate-concurrency-refactor-using-stackful-coroutines-model-in-rust/139246/9)
 But personally I would recommend using `dtact` + sync `apis` of `bincode-next`, which is noticeably faster according to the bench, and as `dtact` is very lite it do not effect too much if you mainly uses `tokio`. [Dtact Official Website](https://dtact.apich.org/#/), [Dtact repository](https://github.com/Apich-Organization/dtact), and [former release posts](https://users.rust-lang.org/t/releasing-dtact-v0-2-2-and-rssn-advanced-v0-1-0/140278). 
 
+---
+
 ## Performance
 
 Unlike `postcard` which is designed for embedding environments, our priority is: security > CPU time > developer time > memory usage > code size
@@ -48,6 +52,8 @@ bench report links: https://bincode-next.apich.org/bench.html
 | `minicbor` | 9.36 | 1.66x | 41.42 | 1.36x |
 | `cbor4ii` | 11.98 | 2.12x | 63.54 | 2.09x |
 
+---
+
 ### Complex World Benchmarks
 
 *Baseline: `bincode-next` (fixed) for encoding, `bincode-next` (varint) for decoding.*
@@ -61,6 +67,8 @@ bench report links: https://bincode-next.apich.org/bench.html
 | `bincode-v2` (varint) | 4.22 | 1.31x | 25.00 | 1.33x |
 | `bincode-next` (cbor) | 5.99 | 1.85x | 24.82 | 1.32x |
 | `bincode-next` (cbor-det) | 6.01 | 1.86x | 24.68 | 1.32x |
+
+---
 
 ### Postcard Comparison
 
@@ -87,7 +95,6 @@ Project Homepage: https://bincode-next.apich.org/
 GitHub: https://github.com/Apich-Organization/bincode
 
 ---
-
 *PS: It has been more then half a year since the original `bincode` gone dark due to really sad reasons and we started `bincode-next`, and well, but maintaining an open source infrastructure are things of decades of work. Although it seems that we are a little bit too heavily branded, in the end, we are just a group of developers that comes from the community and requires community help. And we really appreciate any kinds of contribution from the community.*
 
 Original Post: https://users.rust-lang.org/t/releasing-bincode-next-v3-1-1-v3-stabilization-release/140842/
