@@ -95,7 +95,7 @@ Project Homepage: https://bincode-next.apich.org/
 GitHub: https://github.com/Apich-Organization/bincode
 
 ---
-PS: It has been more then half a year since the original `bincode` gone dark due to really sad reasons and we started `bincode-next`, and well, but maintaining an open source infrastructure are things of decades of work. Although it seems that we are a little bit too heavily branded, in the end, we are just a group of developers that comes from the community and requires community help. And we really appreciate any kinds of contribution from the community.
+*It has been more then half a year since the original `bincode` gone dark due to really sad reasons and we started `bincode-next`, and well, but maintaining an open source infrastructure are things of decades of work. Although it seems that we are a little bit too heavily branded, in the end, we are just a group of developers that comes from the community and requires community help. And we really appreciate any kinds of contribution from the community.*
 
 ---
 ---
