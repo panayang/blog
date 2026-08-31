@@ -1,3 +1,3 @@
 # Qubes OS
 
-From now on, I will use Qubes OS.
+From now on, I will use Qubes OS. Fedora is still great, but Qubes OS seems to me as better than SELinux MLS...
