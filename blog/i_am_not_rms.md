@@ -10,13 +10,18 @@
 
 有时加个agent软件但不太一定是哪个，所以不列了；总之控制在15个以内。
 
-壁纸上的六大偶像人物：
- * 1. Richard Stallman 
- * 2. Lev Landau 
- * 3. Linus Torvalds 
- * 4. Steven Weinberg 
- * 5. Satoshi Nakamoto 
- * 6. James Joyce
+壁纸上的十大偶像人物：
+
+1. James Joyce
+2. Lev Landau
+3. Linus Torvalds
+4. Jacques Derrida
+5. Eugene Wigner
+6. Richard Stallman
+7. Jean-Paul Sartre
+8. Satoshi Nakamoto
+9. Steven Weinberg
+10. Jean-François Lyotard
 
 但我真的是觉得qubes os相对好用才用的，我的威胁模型早降低下来了现在就是个平和的理论物理研究者&独立ai/llm算法研究员...
 
