@@ -4,9 +4,11 @@
 
 于是特意发文解释一下我个人的linux使用习惯。
 
-操作环境：Qubes OS + Yubikey 5C NFC FIPS + LUKS2
+x86 操作环境：System76 Lemur Pro + Qubes OS + Yubikey 5C NFC FIPS + LUKS2
 
-软件列表：rustc、clang、flang、llvm-devel、gnu emacs、typst、lean4、radicle、firefox、keet 
+aarch64 操作环境：Pinebook Pro + FreeBSD + Yubikey 5C NFC FIPS + GELI
+
+软件列表：rustc、clang、flang、llvm-devel、gnu emacs、typst、lean4、radicle、firefox、keet、podman、git、cmake、ninja、spack、claude code、texlive、ghidra、radare2、wireshark、sbcl
 
 有时加个agent软件但不太一定是哪个，所以不列了；总之控制在15个以内。
 
@@ -26,6 +28,8 @@
 但我真的是觉得qubes os相对好用才用的，我的威胁模型早降低下来了现在就是个平和的理论物理研究者&独立ai/llm算法研究员...
 
 我只是觉得qubes os的appvm与standalone vm都兼容的机制，相当于既有可变os又有不可变os，比单系统可变或单系统不可变好用的多，也不需要管那么多MAC的问题；还有单系统容器化方案，那更麻烦了，我大部分软件都是手动加PATH安装或者是纯包管理器管理怎么很好的容器化... 就不算容器是一个很好的技术，但现在有点被滥用了，它其实是一个不上不下的比较麻烦配置的半虚拟化；就不算现在经常被当作软件工程技术债的掩饰。yubikey fips更是只是觉得方便。
+
+至于FreeBSD，那更是因为我觉得它的架构更合理更干净比较喜欢罢了，再加上我觉得Pinebook更适合做日常携带的轻量笔记本，比如记录记录灵感，做点设计或文学工作之类的，比较优雅...
 
 然后就是gnu emacs问题，我只是觉得它的快捷键等操作，以及很多命名（比如buffer）很直观，文档也很清晰便于查阅；我一般不太喜欢lsp，就只是高亮一下就好了，所以emacs也符合轻量化要求。更何况我的主要技术栈是rust和llvmcxx，辅助是lean4和lisp... 同时还有大量agent辅助。真的不是我信自由软件教... 虽然确实我只用qubes os和Fedora server，有时多个临时的Fedora kde which是我很久以前的最爱。至于狂批Windows和mac那只是使用体验问题... 不是传教。详见我的有关回答。
 
