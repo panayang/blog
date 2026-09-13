@@ -6,7 +6,7 @@
 
 x86 操作环境：System76 Lemur Pro + Qubes OS + Yubikey 5C NFC FIPS + LUKS2
 
-aarch64 操作环境：Pinebook Pro + FreeBSD + Yubikey 5C NFC FIPS + GELI
+aarch64 操作环境：MNT Reform Next + FreeBSD + Yubikey 5C NFC FIPS + GELI
 
 软件列表：rustc、clang、flang、llvm-devel、gnu emacs、typst、lean4、radicle、firefox、keet、podman、git、cmake、ninja、spack、claude code、texlive、ghidra、radare2、wireshark、sbcl
 
