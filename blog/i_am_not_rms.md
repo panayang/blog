@@ -10,7 +10,7 @@ aarch64 操作环境：Pinebook Pro + FreeBSD + Yubikey 5C NFC FIPS + GELI
 
 软件列表：rustc、clang、flang、llvm-devel、gnu emacs、typst、lean4、radicle、firefox、keet、podman、git、cmake、ninja、spack、claude code、texlive、ghidra、radare2、wireshark、sbcl
 
-有时加个agent软件但不太一定是哪个，所以不列了；总之控制在15个以内。
+有时加个别的agent软件但不太一定是哪个，所以不列了；总之控制在25个以内。
 
 壁纸上的十大偶像人物：
 
