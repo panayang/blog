@@ -2,7 +2,7 @@
 
 又双叒叕似乎给人感觉我是中国版RMS了...
 
-于是特意发文解释一下我个人的linux使用习惯。
+于是特意发文解释一下我个人的计算机使用习惯。
 
 x86 操作环境：System76 Lemur Pro + Qubes OS + Yubikey 5C NFC FIPS + LUKS2
 
