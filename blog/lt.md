@@ -16,6 +16,12 @@ Copyright (C) 2026 Xinyu Yang No rights reserved.
 
 This work and all associated intellectual property, inventions, codebase, and artifacts are hereby irrevocably dedicated to the public domain, worldwide, for the benefit of humanity, and vest solely in the public domain and humanity, without any consideration, reservation, or restriction.
 
-Unless required by applicable law or agreed to in writing, softwares and all associated intellectual property, inventions, and artifacts distributed under the Disclaimer are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+Unless required by applicable law or agreed to in writing, artifacts and all associated intellectual property, inventions, and softwares distributed under the Disclaimer are distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 Untethered and open to all: take what resonates, build what you dream, and let the rest scatter like dust in the wind.
+
+===
+
+# 中秋祝福
+
+中秋又至，唯愿诸君万事顺遂，各自团圆。秋风起时难免黯然神伤，然路遥日远，君等重逢有时。纵使此身难期再见明岁中秋月，亦愿故人长健，岁岁安宁；岁岁相依，共赴天涯。
