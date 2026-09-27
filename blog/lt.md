@@ -25,3 +25,9 @@ Untethered and open to all: take what resonates, build what you dream, and let t
 # 中秋祝福
 
 中秋又至，唯愿诸君万事顺遂，各自团圆。秋风起时难免黯然神伤，然路遥日远，君等重逢有时。纵使此身难期再见明岁中秋月，亦愿故人长健，岁岁安宁；岁岁相依，共赴天涯。
+
+===
+
+# 昨日发的中秋感伤
+
+秋风袭来，人永远在路上，在京沪线上，至死方休。
