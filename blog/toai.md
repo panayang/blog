@@ -13,6 +13,19 @@
 
 因此：我既不是“支持AI”派也不是“反对AI”派，更既不是左派也不是右派。而我真正支持的只有一条，也就是放下情绪，放下先有立场后有理由的姿态，认真回应各方的意见，而非用“你跑题了”等作为万能理由阻止任何讨论，来维护自己的观点。也只有这样理性的讨论才能有真正的出路，否则无人知道也也无人有权决定未来是怎么样的，更何况我们必须先解决本体论问题再解决执行问题（当作方法论？抑或是当作主体？或者是别的样子），这更是只有大家共同讨论，才能决定的事情。
 
+备注：
+
+关于 https://codeberg.org/ethical-foss/open-slopware 仓库，他们自己的贡献者CoC就包括这两条：
+
+```text
+I understand that I should not mention this repo to other project maintainers in the context of them being added to this list in any way.
+I understand that I generally should not be linking screenshots of chats here.
+```
+
+大家可以想象他们自己心虚成什么样子，具体那个仓库的内容可以自行去查看。不管如何我已经在联系多个基金会和NGO的路上了，实属受不了了，情绪化极化就罢了，竟然还搞这种猎巫行动和公开引导挑衅、辱骂、骚扰。
+
+这个仓库有近2000个commit近千名贡献者，这么多精力没有花费在讨论问题本身或维护导致“维护者疲劳”的项目或加强维护自动化上却用来做这个---如果这不叫情绪化动员，这还叫先有理由再有立场，那世界上也是天理不容了。外加我把很多别的页面，包括URLO上的讨论、rust-lang下的讨论，及其他各个社区论坛上的言论很多存档在互联网档案馆了，大家可以自行查询。
+
 ===
 
 # A Statement on the AI Question (AI Translated)
@@ -29,3 +42,16 @@ I myself do not have a strong stance on this issue, but first of all, there are 
 Now that I have said what I oppose, I will say what I support. I have consistently believed that the AI question involves ontological issues, and that it should not be up to any single company or individual to decide how to treat it. Instead, it should be re-discussed and a new contract should be concluded at the more macro level of the social contract.
 
 Therefore: I am neither in the "pro-AI" camp nor the "anti-AI" camp, and even less am I a leftist or a rightist. The only thing I truly support is this: put down emotions, put down the posture of having a position first and reasons afterward, and seriously respond to the views of all sides, rather than using "you are off topic" and similar phrases as an all-purpose excuse to block any discussion in order to defend one's own viewpoint. Only in this way can rational discussion have a real way out. Otherwise, no one knows and no one has the right to decide what the future will be like. Moreover, we must first solve the ontological problem before solving the execution problem (whether as methodology? or as subject? or something else?), and this is even more something that only everyone discussing together can decide.
+
+Note:
+
+Regarding the repository https://codeberg.org/ethical-foss/open-slopware, their own contributors' CoC includes these two points:
+
+```text
+I understand that I should not mention this repo to other project maintainers in the context of them being added to this list in any way.
+I understand that I generally should not be linking screenshots of chats here.
+```
+
+Everyone can imagine just how guilty they feel. As for the specific contents of that repository, you can go look for yourselves. In any case, I am already on my way to contacting multiple foundations and NGOs. I really cannot take it anymore. It is one thing to be emotional and polarized, but they are actually carrying out this kind of witch hunt and openly inciting provocation, insults, and harassment.
+
+This repository has nearly 2,000 commits and nearly a thousand contributors. So much energy has not been spent on discussing the issue itself, or on maintaining projects that suffer from "maintainer fatigue," or on strengthening maintenance automation, but instead has been used for this. If this is not called emotional mobilization, and if this still counts as reasons first and position afterward, then there is no justice left in the world. In addition, I have archived many other pages, including discussions on URLO, discussions under rust-lang, and statements on various other community forums, in the Internet Archive, so everyone can look them up for themselves.
