@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>rust-user-forum_1</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<p><strong>Last Modified:</strong> <code>2afd47c</code> on
+2026-06-20</p>
+<h1
+id="project-updates-rssn-advanced-v0.1.1-and-bincode-next-maintenance-timeline">Project
+updates: rssn-advanced v0.1.1 and bincode-next maintenance timeline</h1>
+<h1
+id="project-updates-rssn-advanced-v0.1.1-and-bincode-next-maintenance-timeline-1">Project
+updates: rssn-advanced v0.1.1 and bincode-next maintenance timeline</h1>
+<p>rssn-advanced v0.1.1 has been released on May 29, 2026 CST to fix
+several critical bugs on <code>aarch64</code> platforms. Other updates
+are also on the way, so please run <code>cargo update</code> often to
+get your deps up to date. rssn-advanced will also consider for adding
+GPU JIT support and prepare for supporting another PINN research
+project. Also, we have decided that bincode-next v3 stable will be
+released as early as August 2026, but if we think the testing is still
+not sufficient (which seems to probably be the case), the release will
+be delayed anyway.</p>
+<p>And the updated bench report:</p>
+<pre class="text"><code>==============================================================================
+   RSSN-Advanced JIT vs NumPy — Bulk Evaluation Benchmark
+   N = 1,000,000 rows per expression  |  5 repeats, best time reported
+==============================================================================
+
+──────────────────────────────────────────────────────────────────────────────
+  1. Trivial (baseline)
+  x + y + 10.0
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.383 ms     2.38 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.147 ms     1.15 ns/eval
+  NumPy (SIMD / C, hand-optimised)                7.314 ms     7.31 ns/eval
+  SymPy lambdify → numpy backend                  6.660 ms     6.66 ns/eval
+
+  JIT bulk  vs NumPy:  3.07x faster
+  JIT batch vs NumPy:  6.38x faster
+
+  Accuracy  bulk  max|Δ|=0.00e+00  ✔
+            batch max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~2 ops → ~15 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  2. Degree-4 polynomial  (x-y)^4  [2 vars]
+  x^4 - 4*x^3*y + 6*x^2*y^2 - 4*x*y^3 + y^4
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              3.470 ms     3.47 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.438 ms     1.44 ns/eval
+  NumPy (SIMD / C, hand-optimised)               27.584 ms    27.58 ns/eval
+  SymPy lambdify → numpy backend                 27.708 ms    27.71 ns/eval
+
+  JIT bulk  vs NumPy:  7.95x faster
+  JIT batch vs NumPy: 19.18x faster
+
+  Accuracy  bulk  max|Δ|=5.46e-12  ✔
+            batch max|Δ|=5.46e-12  ✔
+
+  NumPy intermediate arrays: ~16 ops → ~122 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  3. Cubic surface  [3 vars, 10 terms]
+  x^3 + y^3 + z^3 - 3*x*y*z + x^2*y - x*y^2 + y^2*z - y*z^2 + z^2*x - z*x^2
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              4.368 ms     4.37 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           2.059 ms     2.06 ns/eval
+  NumPy (SIMD / C, hand-optimised)              104.586 ms   104.59 ns/eval
+  SymPy lambdify → numpy backend                192.272 ms   192.27 ns/eval
+
+  JIT bulk  vs NumPy: 23.94x faster
+  JIT batch vs NumPy: 50.79x faster
+
+  Accuracy  bulk  max|Δ|=2.84e-13  ✔
+            batch max|Δ|=2.84e-13  ✔
+
+  NumPy intermediate arrays: ~27 ops → ~206 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  4. Rational w/ CSE  [2 vars, repeated subexpr]
+  (x^2 + y^2) / (x^2 + y^2 + 1.0) + x*y*(x^2 - y^2) / (x^2 + y^2 + 1.0)^2
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.983 ms     2.98 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.384 ms     1.38 ns/eval
+  NumPy (SIMD / C, hand-optimised)               30.108 ms    30.11 ns/eval
+  SymPy lambdify → numpy backend                129.223 ms   129.22 ns/eval
+
+  JIT bulk  vs NumPy: 10.09x faster
+  JIT batch vs NumPy: 21.75x faster
+
+  Accuracy  bulk  max|Δ|=0.00e+00  ✔
+            batch max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~20 ops → ~153 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+==============================================================================
+  SUMMARY: JIT speedup vs hand-optimised NumPy
+  Expression                                          bulk     batch
+  ──────────────────────────────────────────────  ────────  ────────
+  1. Trivial (baseline)                             3.07x    6.38x
+  2. Degree-4 polynomial                            7.95x   19.18x
+  3. Cubic surface                                 23.94x   50.79x
+  4. Rational w/ CSE                               10.09x   21.75x
+
+  Observation: speedup grows with expression complexity because
+  NumPy&#39;s intermediate arrays overflow L2/L3 cache at N=1,000,000.
+  JIT maintains register-resident computation across the entire
+  expression, paying one memory read/write per input element.
+==============================================================================</code></pre>
+<p>v0.1.2:</p>
+<pre class="text"><code>==========================================================================================
+   RSSN-Advanced JIT vs NumPy — Bulk Evaluation Benchmark
+   N = 1,000,000 rows per expression  |  5 repeats, best time reported
+==========================================================================================
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  1. Trivial (baseline)
+  x + y + 10.0
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.138 ms     2.14 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.075 ms     1.07 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         1.165 ms     1.16 ns/eval
+  NumPy (SIMD / C, hand-optimised)                3.336 ms     3.34 ns/eval
+  SymPy lambdify → numpy backend                  2.518 ms     2.52 ns/eval
+
+  JIT bulk        vs NumPy:  1.56x faster
+  JIT batch f64x2 vs NumPy:  3.10x faster
+  JIT batch f64x4 vs NumPy:  2.86x faster
+
+  Accuracy  bulk        max|Δ|=0.00e+00  ✔
+            batch f64x2 max|Δ|=0.00e+00  ✔
+            batch f64x4 max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~2 ops → ~15 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  2. Degree-4 polynomial  (x-y)^4  [2 vars]
+  x^4 - 4*x^3*y + 6*x^2*y^2 - 4*x*y^3 + y^4
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              3.388 ms     3.39 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.364 ms     1.36 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         1.292 ms     1.29 ns/eval
+  NumPy (SIMD / C, hand-optimised)               21.848 ms    21.85 ns/eval
+  SymPy lambdify → numpy backend                 20.799 ms    20.80 ns/eval
+
+  JIT bulk        vs NumPy:  6.45x faster
+  JIT batch f64x2 vs NumPy: 16.01x faster
+  JIT batch f64x4 vs NumPy: 16.92x faster
+
+  Accuracy  bulk        max|Δ|=5.46e-12  ✔
+            batch f64x2 max|Δ|=5.46e-12  ✔
+            batch f64x4 max|Δ|=5.46e-12  ✔
+
+  NumPy intermediate arrays: ~16 ops → ~122 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  3. Cubic surface  [3 vars, 10 terms]
+  x^3 + y^3 + z^3 - 3*x*y*z + x^2*y - x*y^2 + y^2*z - y*z^2 + z^2*x - z*x^2
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              4.163 ms     4.16 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.854 ms     1.85 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         1.761 ms     1.76 ns/eval
+  NumPy (SIMD / C, hand-optimised)               82.865 ms    82.86 ns/eval
+  SymPy lambdify → numpy backend                 94.077 ms    94.08 ns/eval
+
+  JIT bulk        vs NumPy: 19.90x faster
+  JIT batch f64x2 vs NumPy: 44.70x faster
+  JIT batch f64x4 vs NumPy: 47.07x faster
+
+  Accuracy  bulk        max|Δ|=2.84e-13  ✔
+            batch f64x2 max|Δ|=2.84e-13  ✔
+            batch f64x4 max|Δ|=2.84e-13  ✔
+
+  NumPy intermediate arrays: ~27 ops → ~206 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  4. Rational w/ CSE  [2 vars, repeated subexpr]
+  (x^2 + y^2) / (x^2 + y^2 + 1.0) + x*y*(x^2 - y^2) / (x^2 + y^2 + 1.0)^2
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              3.072 ms     3.07 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.428 ms     1.43 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         1.309 ms     1.31 ns/eval
+  NumPy (SIMD / C, hand-optimised)               16.425 ms    16.42 ns/eval
+  SymPy lambdify → numpy backend                 23.325 ms    23.32 ns/eval
+
+  JIT bulk        vs NumPy:  5.35x faster
+  JIT batch f64x2 vs NumPy: 11.50x faster
+  JIT batch f64x4 vs NumPy: 12.55x faster
+
+  Accuracy  bulk        max|Δ|=0.00e+00  ✔
+            batch f64x2 max|Δ|=0.00e+00  ✔
+            batch f64x4 max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~20 ops → ~153 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  5. Complex degree-5 polynomial [3 vars]
+  x^5 - y^5 + z^5 - 5*x^3*y^2 + 5*x^2*y^3 - 5*y^3*z^2 + 5*y^2*z^3 - 5*z^3*x^2 + 5*z^2*x^3 + x*y*z*(x^2 + y^2 + z^2)
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              5.588 ms     5.59 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           2.440 ms     2.44 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         2.442 ms     2.44 ns/eval
+  NumPy (SIMD / C, hand-optimised)              212.842 ms   212.84 ns/eval
+  SymPy lambdify → numpy backend                218.957 ms   218.96 ns/eval
+
+  JIT bulk        vs NumPy: 38.09x faster
+  JIT batch f64x2 vs NumPy: 87.24x faster
+  JIT batch f64x4 vs NumPy: 87.15x faster
+
+  Accuracy  bulk        max|Δ|=1.46e-11  ✔
+            batch f64x2 max|Δ|=1.46e-11  ✔
+            batch f64x4 max|Δ|=1.46e-11  ✔
+
+  NumPy intermediate arrays: ~44 ops → ~336 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  6. Positive Nested Sqrt [2 vars]
+  (x^2 + 1.0)^0.5 + (x^2 + y^2 + 1.0)^0.5 + (x^2 + y^2 + 2.0)^0.5
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              4.612 ms     4.61 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           2.210 ms     2.21 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         2.189 ms     2.19 ns/eval
+  NumPy (SIMD / C, hand-optimised)               16.013 ms    16.01 ns/eval
+  SymPy lambdify → numpy backend                 15.169 ms    15.17 ns/eval
+
+  JIT bulk        vs NumPy:  3.47x faster
+  JIT batch f64x2 vs NumPy:  7.24x faster
+  JIT batch f64x4 vs NumPy:  7.32x faster
+
+  Accuracy  bulk        max|Δ|=0.00e+00  ✔
+            batch f64x2 max|Δ|=0.00e+00  ✔
+            batch f64x4 max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~15 ops → ~114 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+==========================================================================================
+  SUMMARY: JIT speedup vs hand-optimised NumPy
+  Expression                                          bulk     f64x2       f64x4
+  ──────────────────────────────────────────────  ────────  ────────  ──────────
+  1. Trivial (baseline)                             1.56x    3.10x      2.86x
+  2. Degree-4 polynomial                            6.45x   16.01x     16.92x
+  3. Cubic surface                                 19.90x   44.70x     47.07x
+  4. Rational w/ CSE                                5.35x   11.50x     12.55x
+  5. Complex degree-5 polynomial [3 vars]          38.09x   87.24x     87.15x
+  6. Positive Nested Sqrt [2 vars]                  3.47x    7.24x      7.32x
+
+  Observation: speedup grows with expression complexity because
+  NumPy&#39;s intermediate arrays overflow L2/L3 cache at N=1,000,000.
+  JIT maintains register-resident computation across the entire
+  expression, paying one memory read/write per input element.
+==========================================================================================</code></pre>
+<p>And for v0.1.3:</p>
+<pre class="text"><code>==============================================================================================
+   RSSN-Advanced JIT — Multi-Backend Evaluation Benchmark
+   N = 10,000,000 rows per expression  |  5 repeats, best time reported
+   Backends: NumPy, SymPy/lambdify, numexpr, Numba
+==============================================================================================
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+  1. Trivial (baseline)
+  x + y + 10.0
+──────────────────────────────────────────────────────────────────────────────────────────────
+
+  RSSN JIT  bulk  (scalar, Rust loop)                   77.561 ms     7.76 ns/eval    5.44x vs NumPy
+  RSSN JIT  batch f64x2                                 18.775 ms     1.88 ns/eval   22.49x vs NumPy
+  RSSN JIT  f64x2 parallel                              14.020 ms     1.40 ns/eval   30.11x vs NumPy
+  RSSN JIT  batch f64x4 (2×F64X2)                       20.346 ms     2.03 ns/eval   20.75x vs NumPy
+  RSSN JIT  f64x4 parallel                              13.911 ms     1.39 ns/eval   30.35x vs NumPy
+  RSSN JIT  batch f64x8 (4×F64X2)                       21.432 ms     2.14 ns/eval   19.70x vs NumPy
+  RSSN JIT  f64x8 parallel (dtact fibers)               15.993 ms     1.60 ns/eval   26.40x vs NumPy
+  NumPy     (SIMD/C, hand-optimised)                   422.176 ms    42.22 ns/eval
+  numexpr   (multi-threaded JIT)                        16.409 ms     1.64 ns/eval   25.73x vs NumPy
+  Numba     (LLVM, vectorized ufunc)                   150.335 ms    15.03 ns/eval    2.81x vs NumPy
+  SymPy     lambdify → numpy                           358.044 ms    35.80 ns/eval    1.18x vs NumPy
+
+  Speedups vs NumPy (422.18 ms baseline):
+    JIT bulk   :   5.44x faster
+    JIT f64x2  :  22.49x faster
+    JIT f64x2∥ :  30.11x faster (parallel)
+    JIT f64x4  :  20.75x faster
+    JIT f64x4∥ :  30.35x faster (parallel)
+    JIT f64x8  :  19.70x faster
+    JIT f64x8∥ :  26.40x faster (parallel)
+    numexpr    :  25.73x faster
+    Numba      :   2.81x faster
+    SymPy/lam  :   1.18x faster
+
+  Accuracy  bulk                    max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x2             max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x2 parallel    max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x4             max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x4 parallel    max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x8             max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x8 parallel    max|Δ|=0.00e+00  ✔
+
+  NumPy temp arrays: ~2 binary ops → ~153 MB peak
+  RSSN JIT: 0 temp arrays — register-resident across entire expression
+  numexpr:  ≈0 temp arrays — its own AST-based evaluator
+  Numba:    ≈0 temp arrays — LLVM-fused scalar loop
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+  2. Degree-4 polynomial  (x-y)^4  [2 vars]
+  x^4 - 4*x^3*y + 6*x^2*y^2 - 4*x*y^3 + y^4
+──────────────────────────────────────────────────────────────────────────────────────────────
+
+  RSSN JIT  bulk  (scalar, Rust loop)                   92.770 ms     9.28 ns/eval    9.25x vs NumPy
+  RSSN JIT  batch f64x2                                 22.298 ms     2.23 ns/eval   38.48x vs NumPy
+  RSSN JIT  f64x2 parallel                              22.839 ms     2.28 ns/eval   37.57x vs NumPy
+  RSSN JIT  batch f64x4 (2×F64X2)                       21.708 ms     2.17 ns/eval   39.53x vs NumPy
+  RSSN JIT  f64x4 parallel                              20.351 ms     2.04 ns/eval   42.17x vs NumPy
+  RSSN JIT  batch f64x8 (4×F64X2)                       19.684 ms     1.97 ns/eval   43.59x vs NumPy
+  RSSN JIT  f64x8 parallel (dtact fibers)               18.976 ms     1.90 ns/eval   45.22x vs NumPy
+  NumPy     (SIMD/C, hand-optimised)                   858.108 ms    85.81 ns/eval
+  numexpr   (multi-threaded JIT)                        28.912 ms     2.89 ns/eval   29.68x vs NumPy
+  Numba     (LLVM, vectorized ufunc)                   148.631 ms    14.86 ns/eval    5.77x vs NumPy
+  SymPy     lambdify → numpy                           789.918 ms    78.99 ns/eval    1.09x vs NumPy
+
+  Speedups vs NumPy (858.11 ms baseline):
+    JIT bulk   :   9.25x faster
+    JIT f64x2  :  38.48x faster
+    JIT f64x2∥ :  37.57x faster (parallel)
+    JIT f64x4  :  39.53x faster
+    JIT f64x4∥ :  42.17x faster (parallel)
+    JIT f64x8  :  43.59x faster
+    JIT f64x8∥ :  45.22x faster (parallel)
+    numexpr    :  29.68x faster
+    Numba      :   5.77x faster
+    SymPy/lam  :   1.09x faster
+
+  Accuracy  bulk                    max|Δ|=5.46e-12  ✔
+  Accuracy  batch f64x2             max|Δ|=5.46e-12  ✔
+  Accuracy  batch f64x2 parallel    max|Δ|=5.46e-12  ✔
+  Accuracy  batch f64x4             max|Δ|=5.46e-12  ✔
+  Accuracy  batch f64x4 parallel    max|Δ|=5.46e-12  ✔
+  Accuracy  batch f64x8             max|Δ|=5.46e-12  ✔
+  Accuracy  batch f64x8 parallel    max|Δ|=5.46e-12  ✔
+
+  NumPy temp arrays: ~16 binary ops → ~1221 MB peak
+  RSSN JIT: 0 temp arrays — register-resident across entire expression
+  numexpr:  ≈0 temp arrays — its own AST-based evaluator
+  Numba:    ≈0 temp arrays — LLVM-fused scalar loop
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+  3. Cubic surface  [3 vars, 10 terms]
+  x^3 + y^3 + z^3 - 3*x*y*z + x^2*y - x*y^2 + y^2*z - y*z^2 + z^2*x - z*x^2
+──────────────────────────────────────────────────────────────────────────────────────────────
+
+  RSSN JIT  bulk  (scalar, Rust loop)                  130.722 ms    13.07 ns/eval   59.66x vs NumPy
+  RSSN JIT  batch f64x2                                 52.933 ms     5.29 ns/eval  147.33x vs NumPy
+  RSSN JIT  f64x2 parallel                              36.842 ms     3.68 ns/eval  211.68x vs NumPy
+  RSSN JIT  batch f64x4 (2×F64X2)                       71.699 ms     7.17 ns/eval  108.77x vs NumPy
+  RSSN JIT  f64x4 parallel                              30.933 ms     3.09 ns/eval  252.11x vs NumPy
+  RSSN JIT  batch f64x8 (4×F64X2)                       68.611 ms     6.86 ns/eval  113.66x vs NumPy
+  RSSN JIT  f64x8 parallel (dtact fibers)               30.056 ms     3.01 ns/eval  259.47x vs NumPy
+  NumPy     (SIMD/C, hand-optimised)                  7798.541 ms   779.85 ns/eval
+  numexpr   (multi-threaded JIT)                       110.261 ms    11.03 ns/eval   70.73x vs NumPy
+  Numba     (LLVM, vectorized ufunc)                   165.004 ms    16.50 ns/eval   47.26x vs NumPy
+  SymPy     lambdify → numpy                          10758.865 ms  1075.89 ns/eval    0.72x vs NumPy
+
+  Speedups vs NumPy (7798.54 ms baseline):
+    JIT bulk   :  59.66x faster
+    JIT f64x2  : 147.33x faster
+    JIT f64x2∥ : 211.68x faster (parallel)
+    JIT f64x4  : 108.77x faster
+    JIT f64x4∥ : 252.11x faster (parallel)
+    JIT f64x8  : 113.66x faster
+    JIT f64x8∥ : 259.47x faster (parallel)
+    numexpr    :  70.73x faster
+    Numba      :  47.26x faster
+    SymPy/lam  :   0.72x slower
+
+  Accuracy  bulk                    max|Δ|=3.41e-13  ✔
+  Accuracy  batch f64x2             max|Δ|=3.41e-13  ✔
+  Accuracy  batch f64x2 parallel    max|Δ|=3.41e-13  ✔
+  Accuracy  batch f64x4             max|Δ|=3.41e-13  ✔
+  Accuracy  batch f64x4 parallel    max|Δ|=3.41e-13  ✔
+  Accuracy  batch f64x8             max|Δ|=3.41e-13  ✔
+  Accuracy  batch f64x8 parallel    max|Δ|=3.41e-13  ✔
+
+  NumPy temp arrays: ~27 binary ops → ~2060 MB peak
+  RSSN JIT: 0 temp arrays — register-resident across entire expression
+  numexpr:  ≈0 temp arrays — its own AST-based evaluator
+  Numba:    ≈0 temp arrays — LLVM-fused scalar loop
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+  4. Rational w/ CSE  [2 vars, repeated subexpr]
+  (x^2 + y^2) / (x^2 + y^2 + 1.0) + x*y*(x^2 - y^2) / (x^2 + y^2 + 1.0)^2
+──────────────────────────────────────────────────────────────────────────────────────────────
+
+  RSSN JIT  bulk  (scalar, Rust loop)                   84.202 ms     8.42 ns/eval   48.77x vs NumPy
+  RSSN JIT  batch f64x2                                 20.952 ms     2.10 ns/eval  196.00x vs NumPy
+  RSSN JIT  f64x2 parallel                              20.922 ms     2.09 ns/eval  196.28x vs NumPy
+  RSSN JIT  batch f64x4 (2×F64X2)                       18.431 ms     1.84 ns/eval  222.81x vs NumPy
+  RSSN JIT  f64x4 parallel                              18.836 ms     1.88 ns/eval  218.02x vs NumPy
+  RSSN JIT  batch f64x8 (4×F64X2)                       18.174 ms     1.82 ns/eval  225.96x vs NumPy
+  RSSN JIT  f64x8 parallel (dtact fibers)               19.994 ms     2.00 ns/eval  205.39x vs NumPy
+  NumPy     (SIMD/C, hand-optimised)                  4106.582 ms   410.66 ns/eval
+  numexpr   (multi-threaded JIT)                        50.654 ms     5.07 ns/eval   81.07x vs NumPy
+  Numba     (LLVM, vectorized ufunc)                   215.251 ms    21.53 ns/eval   19.08x vs NumPy
+  SymPy     lambdify → numpy                          6966.517 ms   696.65 ns/eval    0.59x vs NumPy
+
+  Speedups vs NumPy (4106.58 ms baseline):
+    JIT bulk   :  48.77x faster
+    JIT f64x2  : 196.00x faster
+    JIT f64x2∥ : 196.28x faster (parallel)
+    JIT f64x4  : 222.81x faster
+    JIT f64x4∥ : 218.02x faster (parallel)
+    JIT f64x8  : 225.96x faster
+    JIT f64x8∥ : 205.39x faster (parallel)
+    numexpr    :  81.07x faster
+    Numba      :  19.08x faster
+    SymPy/lam  :   0.59x slower
+
+  Accuracy  bulk                    max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x2             max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x2 parallel    max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x4             max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x4 parallel    max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x8             max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x8 parallel    max|Δ|=0.00e+00  ✔
+
+  NumPy temp arrays: ~20 binary ops → ~1526 MB peak
+  RSSN JIT: 0 temp arrays — register-resident across entire expression
+  numexpr:  ≈0 temp arrays — its own AST-based evaluator
+  Numba:    ≈0 temp arrays — LLVM-fused scalar loop
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+  5. Complex degree-5 polynomial [3 vars]
+  x^5 - y^5 + z^5 - 5*x^3*y^2 + 5*x^2*y^3 - 5*y^3*z^2 + 5*y^2*z^3 - 5*z^3*x^2 + 5*z^2*x^3 + x*y*z*(x^2 + y^2 + z^2)
+──────────────────────────────────────────────────────────────────────────────────────────────
+
+  RSSN JIT  bulk  (scalar, Rust loop)                  155.291 ms    15.53 ns/eval   97.82x vs NumPy
+  RSSN JIT  batch f64x2                                 45.168 ms     4.52 ns/eval  336.32x vs NumPy
+  RSSN JIT  f64x2 parallel                              45.234 ms     4.52 ns/eval  335.83x vs NumPy
+  RSSN JIT  batch f64x4 (2×F64X2)                       42.556 ms     4.26 ns/eval  356.96x vs NumPy
+  RSSN JIT  f64x4 parallel                              42.654 ms     4.27 ns/eval  356.14x vs NumPy
+  RSSN JIT  batch f64x8 (4×F64X2)                       42.801 ms     4.28 ns/eval  354.91x vs NumPy
+  RSSN JIT  f64x8 parallel (dtact fibers)               45.892 ms     4.59 ns/eval  331.01x vs NumPy
+  NumPy     (SIMD/C, hand-optimised)                  15190.814 ms  1519.08 ns/eval
+  numexpr   (multi-threaded JIT)                       163.108 ms    16.31 ns/eval   93.13x vs NumPy
+  Numba     (LLVM, vectorized ufunc)                   178.396 ms    17.84 ns/eval   85.15x vs NumPy
+  SymPy     lambdify → numpy                          14703.106 ms  1470.31 ns/eval    1.03x vs NumPy
+
+  Speedups vs NumPy (15190.81 ms baseline):
+    JIT bulk   :  97.82x faster
+    JIT f64x2  : 336.32x faster
+    JIT f64x2∥ : 335.83x faster (parallel)
+    JIT f64x4  : 356.96x faster
+    JIT f64x4∥ : 356.14x faster (parallel)
+    JIT f64x8  : 354.91x faster
+    JIT f64x8∥ : 331.01x faster (parallel)
+    numexpr    :  93.13x faster
+    Numba      :  85.15x faster
+    SymPy/lam  :   1.03x faster
+
+  Accuracy  bulk                    max|Δ|=1.46e-11  ✔
+  Accuracy  batch f64x2             max|Δ|=1.46e-11  ✔
+  Accuracy  batch f64x2 parallel    max|Δ|=1.46e-11  ✔
+  Accuracy  batch f64x4             max|Δ|=1.46e-11  ✔
+  Accuracy  batch f64x4 parallel    max|Δ|=1.46e-11  ✔
+  Accuracy  batch f64x8             max|Δ|=1.46e-11  ✔
+  Accuracy  batch f64x8 parallel    max|Δ|=1.46e-11  ✔
+
+  NumPy temp arrays: ~44 binary ops → ~3357 MB peak
+  RSSN JIT: 0 temp arrays — register-resident across entire expression
+  numexpr:  ≈0 temp arrays — its own AST-based evaluator
+  Numba:    ≈0 temp arrays — LLVM-fused scalar loop
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+  6. Positive Nested Sqrt [2 vars]
+  (x^2 + 1.0)^0.5 + (x^2 + y^2 + 1.0)^0.5 + (x^2 + y^2 + 2.0)^0.5
+──────────────────────────────────────────────────────────────────────────────────────────────
+
+  RSSN JIT  bulk  (scalar, Rust loop)                  342.537 ms    34.25 ns/eval   27.52x vs NumPy
+  RSSN JIT  batch f64x2                                105.035 ms    10.50 ns/eval   89.73x vs NumPy
+  RSSN JIT  f64x2 parallel                              94.610 ms     9.46 ns/eval   99.62x vs NumPy
+  RSSN JIT  batch f64x4 (2×F64X2)                      101.691 ms    10.17 ns/eval   92.69x vs NumPy
+  RSSN JIT  f64x4 parallel                              94.105 ms     9.41 ns/eval  100.16x vs NumPy
+  RSSN JIT  batch f64x8 (4×F64X2)                       92.763 ms     9.28 ns/eval  101.61x vs NumPy
+  RSSN JIT  f64x8 parallel (dtact fibers)               93.830 ms     9.38 ns/eval  100.45x vs NumPy
+  NumPy     (SIMD/C, hand-optimised)                  9425.277 ms   942.53 ns/eval
+  numexpr   (multi-threaded JIT)                        85.005 ms     8.50 ns/eval  110.88x vs NumPy
+  Numba     (LLVM, vectorized ufunc)                   172.047 ms    17.20 ns/eval   54.78x vs NumPy
+  SymPy     lambdify → numpy                          3511.592 ms   351.16 ns/eval    2.68x vs NumPy
+
+  Speedups vs NumPy (9425.28 ms baseline):
+    JIT bulk   :  27.52x faster
+    JIT f64x2  :  89.73x faster
+    JIT f64x2∥ :  99.62x faster (parallel)
+    JIT f64x4  :  92.69x faster
+    JIT f64x4∥ : 100.16x faster (parallel)
+    JIT f64x8  : 101.61x faster
+    JIT f64x8∥ : 100.45x faster (parallel)
+    numexpr    : 110.88x faster
+    Numba      :  54.78x faster
+    SymPy/lam  :   2.68x faster
+
+  Accuracy  bulk                    max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x2             max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x2 parallel    max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x4             max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x4 parallel    max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x8             max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x8 parallel    max|Δ|=0.00e+00  ✔
+
+  NumPy temp arrays: ~15 binary ops → ~1144 MB peak
+  RSSN JIT: 0 temp arrays — register-resident across entire expression
+  numexpr:  ≈0 temp arrays — its own AST-based evaluator
+  Numba:    ≈0 temp arrays — LLVM-fused scalar loop
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+  7. Redundant Algebraic Cubics (E-Graph target) [2 vars]
+  ((x + y)^3 - (x - y)^3 - 6*x^2*y) / (y^2 + 1.0) + x*y - y*x
+──────────────────────────────────────────────────────────────────────────────────────────────
+
+  RSSN JIT  bulk  (scalar, Rust loop)                  104.884 ms    10.49 ns/eval   15.73x vs NumPy
+  RSSN JIT  batch f64x2                                 28.010 ms     2.80 ns/eval   58.92x vs NumPy
+  RSSN JIT  f64x2 parallel                              28.125 ms     2.81 ns/eval   58.68x vs NumPy
+  RSSN JIT  batch f64x4 (2×F64X2)                       24.799 ms     2.48 ns/eval   66.55x vs NumPy
+  RSSN JIT  f64x4 parallel                              24.925 ms     2.49 ns/eval   66.21x vs NumPy
+  RSSN JIT  batch f64x8 (4×F64X2)                       23.432 ms     2.34 ns/eval   70.43x vs NumPy
+  RSSN JIT  f64x8 parallel (dtact fibers)               23.751 ms     2.38 ns/eval   69.48x vs NumPy
+  NumPy     (SIMD/C, hand-optimised)                  1650.302 ms   165.03 ns/eval
+  numexpr   (multi-threaded JIT)                        84.983 ms     8.50 ns/eval   19.42x vs NumPy
+  Numba     (LLVM, vectorized ufunc)                   165.091 ms    16.51 ns/eval   10.00x vs NumPy
+  SymPy     lambdify → numpy                          9067.141 ms   906.71 ns/eval    0.18x vs NumPy
+
+  Speedups vs NumPy (1650.30 ms baseline):
+    JIT bulk   :  15.73x faster
+    JIT f64x2  :  58.92x faster
+    JIT f64x2∥ :  58.68x faster (parallel)
+    JIT f64x4  :  66.55x faster
+    JIT f64x4∥ :  66.21x faster (parallel)
+    JIT f64x8  :  70.43x faster
+    JIT f64x8∥ :  69.48x faster (parallel)
+    numexpr    :  19.42x faster
+    Numba      :  10.00x faster
+    SymPy/lam  :   0.18x slower
+
+  Accuracy  bulk                    max|Δ|=5.80e-14  ✔
+  Accuracy  batch f64x2             max|Δ|=5.80e-14  ✔
+  Accuracy  batch f64x2 parallel    max|Δ|=5.80e-14  ✔
+  Accuracy  batch f64x4             max|Δ|=5.80e-14  ✔
+  Accuracy  batch f64x4 parallel    max|Δ|=5.80e-14  ✔
+  Accuracy  batch f64x8             max|Δ|=5.80e-14  ✔
+  Accuracy  batch f64x8 parallel    max|Δ|=5.80e-14  ✔
+
+  NumPy temp arrays: ~16 binary ops → ~1221 MB peak
+  RSSN JIT: 0 temp arrays — register-resident across entire expression
+  numexpr:  ≈0 temp arrays — its own AST-based evaluator
+  Numba:    ≈0 temp arrays — LLVM-fused scalar loop
+
+==============================================================================================
+  SUMMARY — speedup vs hand-optimised NumPy  (higher = faster)
+  Expression                                           bulk      f64x2     f64x2∥      f64x4     f64x4∥      f64x8     f64x8∥    numexpr      numba      sympy
+  ──────────────────────────────────────────────  ─────────  ─────────  ─────────  ─────────  ─────────  ─────────  ─────────  ─────────  ─────────  ─────────
+  1. Trivial (baseline)                               5.44x     22.49x     30.11x     20.75x     30.35x     19.70x     26.40x     25.73x      2.81x      1.18x
+  2. Degree-4 polynomial                              9.25x     38.48x     37.57x     39.53x     42.17x     43.59x     45.22x     29.68x      5.77x      1.09x
+  3. Cubic surface                                   59.66x    147.33x    211.68x    108.77x    252.11x    113.66x    259.47x     70.73x     47.26x      0.72x
+  4. Rational w/ CSE                                 48.77x    196.00x    196.28x    222.81x    218.02x    225.96x    205.39x     81.07x     19.08x      0.59x
+  5. Complex degree-5 polynomial [3 vars]            97.82x    336.32x    335.83x    356.96x    356.14x    354.91x    331.01x     93.13x     85.15x      1.03x
+  6. Positive Nested Sqrt [2 vars]                   27.52x     89.73x     99.62x     92.69x    100.16x    101.61x    100.45x    110.88x     54.78x      2.68x
+  7. Redundant Algebraic Cubics (E-Graph target) [2 vars]     15.73x     58.92x     58.68x     66.55x     66.21x     70.43x     69.48x     19.42x     10.00x      0.18x
+
+  Observations:
+  • Speedup grows with expression complexity as NumPy&#39;s intermediates
+    overflow L2/L3 cache at N=10,000,000.
+  • RSSN JIT is register-resident: pays one mem read/write per input.
+  • numexpr parses a string AST and avoids most temporaries; competitive
+    on simple expressions, RSSN wins on deeply nested trees (no Python
+    overhead, full algebraic simplification, custom FMA peepholes).
+  • Numba (vectorized) compiles a scalar kernel to LLVM; matches or
+    exceeds NumPy on simple ops, RSSN f64x4 pulls ahead on complex ones.
+
+==============================================================================================</code></pre>
+<h3 id="history">History</h3>
+<details>
+<summary>
+Commit: 2afd47c | Date: 2026-06-20
+</summary>
+<h1
+id="project-updates-rssn-advanced-v0.1.1-and-bincode-next-maintenance-timeline-2">Project
+updates: rssn-advanced v0.1.1 and bincode-next maintenance timeline</h1>
+<p>rssn-advanced v0.1.1 has been released on May 29, 2026 CST to fix
+several critical bugs on <code>aarch64</code> platforms. Other updates
+are also on the way, so please run <code>cargo update</code> often to
+get your deps up to date. rssn-advanced will also consider for adding
+GPU JIT support and prepare for supporting another PINN research
+project. Also, we have decided that bincode-next v3 stable will be
+released as early as August 2026, but if we think the testing is still
+not sufficient (which seems to probably be the case), the release will
+be delayed anyway.</p>
+<p>And the updated bench report:</p>
+<pre class="text"><code>==============================================================================
+   RSSN-Advanced JIT vs NumPy — Bulk Evaluation Benchmark
+   N = 1,000,000 rows per expression  |  5 repeats, best time reported
+==============================================================================
+
+──────────────────────────────────────────────────────────────────────────────
+  1. Trivial (baseline)
+  x + y + 10.0
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.383 ms     2.38 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.147 ms     1.15 ns/eval
+  NumPy (SIMD / C, hand-optimised)                7.314 ms     7.31 ns/eval
+  SymPy lambdify → numpy backend                  6.660 ms     6.66 ns/eval
+
+  JIT bulk  vs NumPy:  3.07x faster
+  JIT batch vs NumPy:  6.38x faster
+
+  Accuracy  bulk  max|Δ|=0.00e+00  ✔
+            batch max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~2 ops → ~15 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  2. Degree-4 polynomial  (x-y)^4  [2 vars]
+  x^4 - 4*x^3*y + 6*x^2*y^2 - 4*x*y^3 + y^4
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              3.470 ms     3.47 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.438 ms     1.44 ns/eval
+  NumPy (SIMD / C, hand-optimised)               27.584 ms    27.58 ns/eval
+  SymPy lambdify → numpy backend                 27.708 ms    27.71 ns/eval
+
+  JIT bulk  vs NumPy:  7.95x faster
+  JIT batch vs NumPy: 19.18x faster
+
+  Accuracy  bulk  max|Δ|=5.46e-12  ✔
+            batch max|Δ|=5.46e-12  ✔
+
+  NumPy intermediate arrays: ~16 ops → ~122 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  3. Cubic surface  [3 vars, 10 terms]
+  x^3 + y^3 + z^3 - 3*x*y*z + x^2*y - x*y^2 + y^2*z - y*z^2 + z^2*x - z*x^2
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              4.368 ms     4.37 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           2.059 ms     2.06 ns/eval
+  NumPy (SIMD / C, hand-optimised)              104.586 ms   104.59 ns/eval
+  SymPy lambdify → numpy backend                192.272 ms   192.27 ns/eval
+
+  JIT bulk  vs NumPy: 23.94x faster
+  JIT batch vs NumPy: 50.79x faster
+
+  Accuracy  bulk  max|Δ|=2.84e-13  ✔
+            batch max|Δ|=2.84e-13  ✔
+
+  NumPy intermediate arrays: ~27 ops → ~206 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  4. Rational w/ CSE  [2 vars, repeated subexpr]
+  (x^2 + y^2) / (x^2 + y^2 + 1.0) + x*y*(x^2 - y^2) / (x^2 + y^2 + 1.0)^2
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.983 ms     2.98 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.384 ms     1.38 ns/eval
+  NumPy (SIMD / C, hand-optimised)               30.108 ms    30.11 ns/eval
+  SymPy lambdify → numpy backend                129.223 ms   129.22 ns/eval
+
+  JIT bulk  vs NumPy: 10.09x faster
+  JIT batch vs NumPy: 21.75x faster
+
+  Accuracy  bulk  max|Δ|=0.00e+00  ✔
+            batch max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~20 ops → ~153 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+==============================================================================
+  SUMMARY: JIT speedup vs hand-optimised NumPy
+  Expression                                          bulk     batch
+  ──────────────────────────────────────────────  ────────  ────────
+  1. Trivial (baseline)                             3.07x    6.38x
+  2. Degree-4 polynomial                            7.95x   19.18x
+  3. Cubic surface                                 23.94x   50.79x
+  4. Rational w/ CSE                               10.09x   21.75x
+
+  Observation: speedup grows with expression complexity because
+  NumPy&#39;s intermediate arrays overflow L2/L3 cache at N=1,000,000.
+  JIT maintains register-resident computation across the entire
+  expression, paying one memory read/write per input element.
+==============================================================================</code></pre>
+<p>v0.1.2:</p>
+<pre class="text"><code>==========================================================================================
+   RSSN-Advanced JIT vs NumPy — Bulk Evaluation Benchmark
+   N = 1,000,000 rows per expression  |  5 repeats, best time reported
+==========================================================================================
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  1. Trivial (baseline)
+  x + y + 10.0
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.138 ms     2.14 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.075 ms     1.07 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         1.165 ms     1.16 ns/eval
+  NumPy (SIMD / C, hand-optimised)                3.336 ms     3.34 ns/eval
+  SymPy lambdify → numpy backend                  2.518 ms     2.52 ns/eval
+
+  JIT bulk        vs NumPy:  1.56x faster
+  JIT batch f64x2 vs NumPy:  3.10x faster
+  JIT batch f64x4 vs NumPy:  2.86x faster
+
+  Accuracy  bulk        max|Δ|=0.00e+00  ✔
+            batch f64x2 max|Δ|=0.00e+00  ✔
+            batch f64x4 max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~2 ops → ~15 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  2. Degree-4 polynomial  (x-y)^4  [2 vars]
+  x^4 - 4*x^3*y + 6*x^2*y^2 - 4*x*y^3 + y^4
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              3.388 ms     3.39 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.364 ms     1.36 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         1.292 ms     1.29 ns/eval
+  NumPy (SIMD / C, hand-optimised)               21.848 ms    21.85 ns/eval
+  SymPy lambdify → numpy backend                 20.799 ms    20.80 ns/eval
+
+  JIT bulk        vs NumPy:  6.45x faster
+  JIT batch f64x2 vs NumPy: 16.01x faster
+  JIT batch f64x4 vs NumPy: 16.92x faster
+
+  Accuracy  bulk        max|Δ|=5.46e-12  ✔
+            batch f64x2 max|Δ|=5.46e-12  ✔
+            batch f64x4 max|Δ|=5.46e-12  ✔
+
+  NumPy intermediate arrays: ~16 ops → ~122 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  3. Cubic surface  [3 vars, 10 terms]
+  x^3 + y^3 + z^3 - 3*x*y*z + x^2*y - x*y^2 + y^2*z - y*z^2 + z^2*x - z*x^2
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              4.163 ms     4.16 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.854 ms     1.85 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         1.761 ms     1.76 ns/eval
+  NumPy (SIMD / C, hand-optimised)               82.865 ms    82.86 ns/eval
+  SymPy lambdify → numpy backend                 94.077 ms    94.08 ns/eval
+
+  JIT bulk        vs NumPy: 19.90x faster
+  JIT batch f64x2 vs NumPy: 44.70x faster
+  JIT batch f64x4 vs NumPy: 47.07x faster
+
+  Accuracy  bulk        max|Δ|=2.84e-13  ✔
+            batch f64x2 max|Δ|=2.84e-13  ✔
+            batch f64x4 max|Δ|=2.84e-13  ✔
+
+  NumPy intermediate arrays: ~27 ops → ~206 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  4. Rational w/ CSE  [2 vars, repeated subexpr]
+  (x^2 + y^2) / (x^2 + y^2 + 1.0) + x*y*(x^2 - y^2) / (x^2 + y^2 + 1.0)^2
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              3.072 ms     3.07 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.428 ms     1.43 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         1.309 ms     1.31 ns/eval
+  NumPy (SIMD / C, hand-optimised)               16.425 ms    16.42 ns/eval
+  SymPy lambdify → numpy backend                 23.325 ms    23.32 ns/eval
+
+  JIT bulk        vs NumPy:  5.35x faster
+  JIT batch f64x2 vs NumPy: 11.50x faster
+  JIT batch f64x4 vs NumPy: 12.55x faster
+
+  Accuracy  bulk        max|Δ|=0.00e+00  ✔
+            batch f64x2 max|Δ|=0.00e+00  ✔
+            batch f64x4 max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~20 ops → ~153 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  5. Complex degree-5 polynomial [3 vars]
+  x^5 - y^5 + z^5 - 5*x^3*y^2 + 5*x^2*y^3 - 5*y^3*z^2 + 5*y^2*z^3 - 5*z^3*x^2 + 5*z^2*x^3 + x*y*z*(x^2 + y^2 + z^2)
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              5.588 ms     5.59 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           2.440 ms     2.44 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         2.442 ms     2.44 ns/eval
+  NumPy (SIMD / C, hand-optimised)              212.842 ms   212.84 ns/eval
+  SymPy lambdify → numpy backend                218.957 ms   218.96 ns/eval
+
+  JIT bulk        vs NumPy: 38.09x faster
+  JIT batch f64x2 vs NumPy: 87.24x faster
+  JIT batch f64x4 vs NumPy: 87.15x faster
+
+  Accuracy  bulk        max|Δ|=1.46e-11  ✔
+            batch f64x2 max|Δ|=1.46e-11  ✔
+            batch f64x4 max|Δ|=1.46e-11  ✔
+
+  NumPy intermediate arrays: ~44 ops → ~336 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  6. Positive Nested Sqrt [2 vars]
+  (x^2 + 1.0)^0.5 + (x^2 + y^2 + 1.0)^0.5 + (x^2 + y^2 + 2.0)^0.5
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              4.612 ms     4.61 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           2.210 ms     2.21 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         2.189 ms     2.19 ns/eval
+  NumPy (SIMD / C, hand-optimised)               16.013 ms    16.01 ns/eval
+  SymPy lambdify → numpy backend                 15.169 ms    15.17 ns/eval
+
+  JIT bulk        vs NumPy:  3.47x faster
+  JIT batch f64x2 vs NumPy:  7.24x faster
+  JIT batch f64x4 vs NumPy:  7.32x faster
+
+  Accuracy  bulk        max|Δ|=0.00e+00  ✔
+            batch f64x2 max|Δ|=0.00e+00  ✔
+            batch f64x4 max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~15 ops → ~114 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+==========================================================================================
+  SUMMARY: JIT speedup vs hand-optimised NumPy
+  Expression                                          bulk     f64x2       f64x4
+  ──────────────────────────────────────────────  ────────  ────────  ──────────
+  1. Trivial (baseline)                             1.56x    3.10x      2.86x
+  2. Degree-4 polynomial                            6.45x   16.01x     16.92x
+  3. Cubic surface                                 19.90x   44.70x     47.07x
+  4. Rational w/ CSE                                5.35x   11.50x     12.55x
+  5. Complex degree-5 polynomial [3 vars]          38.09x   87.24x     87.15x
+  6. Positive Nested Sqrt [2 vars]                  3.47x    7.24x      7.32x
+
+  Observation: speedup grows with expression complexity because
+  NumPy&#39;s intermediate arrays overflow L2/L3 cache at N=1,000,000.
+  JIT maintains register-resident computation across the entire
+  expression, paying one memory read/write per input element.
+==========================================================================================</code></pre>
+<p>And for v0.1.3:</p>
+<pre class="text"><code>==============================================================================================
+   RSSN-Advanced JIT — Multi-Backend Evaluation Benchmark
+   N = 10,000,000 rows per expression  |  5 repeats, best time reported
+   Backends: NumPy, SymPy/lambdify, numexpr, Numba
+==============================================================================================
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+  1. Trivial (baseline)
+  x + y + 10.0
+──────────────────────────────────────────────────────────────────────────────────────────────
+
+  RSSN JIT  bulk  (scalar, Rust loop)                   77.561 ms     7.76 ns/eval    5.44x vs NumPy
+  RSSN JIT  batch f64x2                                 18.775 ms     1.88 ns/eval   22.49x vs NumPy
+  RSSN JIT  f64x2 parallel                              14.020 ms     1.40 ns/eval   30.11x vs NumPy
+  RSSN JIT  batch f64x4 (2×F64X2)                       20.346 ms     2.03 ns/eval   20.75x vs NumPy
+  RSSN JIT  f64x4 parallel                              13.911 ms     1.39 ns/eval   30.35x vs NumPy
+  RSSN JIT  batch f64x8 (4×F64X2)                       21.432 ms     2.14 ns/eval   19.70x vs NumPy
+  RSSN JIT  f64x8 parallel (dtact fibers)               15.993 ms     1.60 ns/eval   26.40x vs NumPy
+  NumPy     (SIMD/C, hand-optimised)                   422.176 ms    42.22 ns/eval
+  numexpr   (multi-threaded JIT)                        16.409 ms     1.64 ns/eval   25.73x vs NumPy
+  Numba     (LLVM, vectorized ufunc)                   150.335 ms    15.03 ns/eval    2.81x vs NumPy
+  SymPy     lambdify → numpy                           358.044 ms    35.80 ns/eval    1.18x vs NumPy
+
+  Speedups vs NumPy (422.18 ms baseline):
+    JIT bulk   :   5.44x faster
+    JIT f64x2  :  22.49x faster
+    JIT f64x2∥ :  30.11x faster (parallel)
+    JIT f64x4  :  20.75x faster
+    JIT f64x4∥ :  30.35x faster (parallel)
+    JIT f64x8  :  19.70x faster
+    JIT f64x8∥ :  26.40x faster (parallel)
+    numexpr    :  25.73x faster
+    Numba      :   2.81x faster
+    SymPy/lam  :   1.18x faster
+
+  Accuracy  bulk                    max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x2             max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x2 parallel    max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x4             max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x4 parallel    max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x8             max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x8 parallel    max|Δ|=0.00e+00  ✔
+
+  NumPy temp arrays: ~2 binary ops → ~153 MB peak
+  RSSN JIT: 0 temp arrays — register-resident across entire expression
+  numexpr:  ≈0 temp arrays — its own AST-based evaluator
+  Numba:    ≈0 temp arrays — LLVM-fused scalar loop
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+  2. Degree-4 polynomial  (x-y)^4  [2 vars]
+  x^4 - 4*x^3*y + 6*x^2*y^2 - 4*x*y^3 + y^4
+──────────────────────────────────────────────────────────────────────────────────────────────
+
+  RSSN JIT  bulk  (scalar, Rust loop)                   92.770 ms     9.28 ns/eval    9.25x vs NumPy
+  RSSN JIT  batch f64x2                                 22.298 ms     2.23 ns/eval   38.48x vs NumPy
+  RSSN JIT  f64x2 parallel                              22.839 ms     2.28 ns/eval   37.57x vs NumPy
+  RSSN JIT  batch f64x4 (2×F64X2)                       21.708 ms     2.17 ns/eval   39.53x vs NumPy
+  RSSN JIT  f64x4 parallel                              20.351 ms     2.04 ns/eval   42.17x vs NumPy
+  RSSN JIT  batch f64x8 (4×F64X2)                       19.684 ms     1.97 ns/eval   43.59x vs NumPy
+  RSSN JIT  f64x8 parallel (dtact fibers)               18.976 ms     1.90 ns/eval   45.22x vs NumPy
+  NumPy     (SIMD/C, hand-optimised)                   858.108 ms    85.81 ns/eval
+  numexpr   (multi-threaded JIT)                        28.912 ms     2.89 ns/eval   29.68x vs NumPy
+  Numba     (LLVM, vectorized ufunc)                   148.631 ms    14.86 ns/eval    5.77x vs NumPy
+  SymPy     lambdify → numpy                           789.918 ms    78.99 ns/eval    1.09x vs NumPy
+
+  Speedups vs NumPy (858.11 ms baseline):
+    JIT bulk   :   9.25x faster
+    JIT f64x2  :  38.48x faster
+    JIT f64x2∥ :  37.57x faster (parallel)
+    JIT f64x4  :  39.53x faster
+    JIT f64x4∥ :  42.17x faster (parallel)
+    JIT f64x8  :  43.59x faster
+    JIT f64x8∥ :  45.22x faster (parallel)
+    numexpr    :  29.68x faster
+    Numba      :   5.77x faster
+    SymPy/lam  :   1.09x faster
+
+  Accuracy  bulk                    max|Δ|=5.46e-12  ✔
+  Accuracy  batch f64x2             max|Δ|=5.46e-12  ✔
+  Accuracy  batch f64x2 parallel    max|Δ|=5.46e-12  ✔
+  Accuracy  batch f64x4             max|Δ|=5.46e-12  ✔
+  Accuracy  batch f64x4 parallel    max|Δ|=5.46e-12  ✔
+  Accuracy  batch f64x8             max|Δ|=5.46e-12  ✔
+  Accuracy  batch f64x8 parallel    max|Δ|=5.46e-12  ✔
+
+  NumPy temp arrays: ~16 binary ops → ~1221 MB peak
+  RSSN JIT: 0 temp arrays — register-resident across entire expression
+  numexpr:  ≈0 temp arrays — its own AST-based evaluator
+  Numba:    ≈0 temp arrays — LLVM-fused scalar loop
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+  3. Cubic surface  [3 vars, 10 terms]
+  x^3 + y^3 + z^3 - 3*x*y*z + x^2*y - x*y^2 + y^2*z - y*z^2 + z^2*x - z*x^2
+──────────────────────────────────────────────────────────────────────────────────────────────
+
+  RSSN JIT  bulk  (scalar, Rust loop)                  130.722 ms    13.07 ns/eval   59.66x vs NumPy
+  RSSN JIT  batch f64x2                                 52.933 ms     5.29 ns/eval  147.33x vs NumPy
+  RSSN JIT  f64x2 parallel                              36.842 ms     3.68 ns/eval  211.68x vs NumPy
+  RSSN JIT  batch f64x4 (2×F64X2)                       71.699 ms     7.17 ns/eval  108.77x vs NumPy
+  RSSN JIT  f64x4 parallel                              30.933 ms     3.09 ns/eval  252.11x vs NumPy
+  RSSN JIT  batch f64x8 (4×F64X2)                       68.611 ms     6.86 ns/eval  113.66x vs NumPy
+  RSSN JIT  f64x8 parallel (dtact fibers)               30.056 ms     3.01 ns/eval  259.47x vs NumPy
+  NumPy     (SIMD/C, hand-optimised)                  7798.541 ms   779.85 ns/eval
+  numexpr   (multi-threaded JIT)                       110.261 ms    11.03 ns/eval   70.73x vs NumPy
+  Numba     (LLVM, vectorized ufunc)                   165.004 ms    16.50 ns/eval   47.26x vs NumPy
+  SymPy     lambdify → numpy                          10758.865 ms  1075.89 ns/eval    0.72x vs NumPy
+
+  Speedups vs NumPy (7798.54 ms baseline):
+    JIT bulk   :  59.66x faster
+    JIT f64x2  : 147.33x faster
+    JIT f64x2∥ : 211.68x faster (parallel)
+    JIT f64x4  : 108.77x faster
+    JIT f64x4∥ : 252.11x faster (parallel)
+    JIT f64x8  : 113.66x faster
+    JIT f64x8∥ : 259.47x faster (parallel)
+    numexpr    :  70.73x faster
+    Numba      :  47.26x faster
+    SymPy/lam  :   0.72x slower
+
+  Accuracy  bulk                    max|Δ|=3.41e-13  ✔
+  Accuracy  batch f64x2             max|Δ|=3.41e-13  ✔
+  Accuracy  batch f64x2 parallel    max|Δ|=3.41e-13  ✔
+  Accuracy  batch f64x4             max|Δ|=3.41e-13  ✔
+  Accuracy  batch f64x4 parallel    max|Δ|=3.41e-13  ✔
+  Accuracy  batch f64x8             max|Δ|=3.41e-13  ✔
+  Accuracy  batch f64x8 parallel    max|Δ|=3.41e-13  ✔
+
+  NumPy temp arrays: ~27 binary ops → ~2060 MB peak
+  RSSN JIT: 0 temp arrays — register-resident across entire expression
+  numexpr:  ≈0 temp arrays — its own AST-based evaluator
+  Numba:    ≈0 temp arrays — LLVM-fused scalar loop
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+  4. Rational w/ CSE  [2 vars, repeated subexpr]
+  (x^2 + y^2) / (x^2 + y^2 + 1.0) + x*y*(x^2 - y^2) / (x^2 + y^2 + 1.0)^2
+──────────────────────────────────────────────────────────────────────────────────────────────
+
+  RSSN JIT  bulk  (scalar, Rust loop)                   84.202 ms     8.42 ns/eval   48.77x vs NumPy
+  RSSN JIT  batch f64x2                                 20.952 ms     2.10 ns/eval  196.00x vs NumPy
+  RSSN JIT  f64x2 parallel                              20.922 ms     2.09 ns/eval  196.28x vs NumPy
+  RSSN JIT  batch f64x4 (2×F64X2)                       18.431 ms     1.84 ns/eval  222.81x vs NumPy
+  RSSN JIT  f64x4 parallel                              18.836 ms     1.88 ns/eval  218.02x vs NumPy
+  RSSN JIT  batch f64x8 (4×F64X2)                       18.174 ms     1.82 ns/eval  225.96x vs NumPy
+  RSSN JIT  f64x8 parallel (dtact fibers)               19.994 ms     2.00 ns/eval  205.39x vs NumPy
+  NumPy     (SIMD/C, hand-optimised)                  4106.582 ms   410.66 ns/eval
+  numexpr   (multi-threaded JIT)                        50.654 ms     5.07 ns/eval   81.07x vs NumPy
+  Numba     (LLVM, vectorized ufunc)                   215.251 ms    21.53 ns/eval   19.08x vs NumPy
+  SymPy     lambdify → numpy                          6966.517 ms   696.65 ns/eval    0.59x vs NumPy
+
+  Speedups vs NumPy (4106.58 ms baseline):
+    JIT bulk   :  48.77x faster
+    JIT f64x2  : 196.00x faster
+    JIT f64x2∥ : 196.28x faster (parallel)
+    JIT f64x4  : 222.81x faster
+    JIT f64x4∥ : 218.02x faster (parallel)
+    JIT f64x8  : 225.96x faster
+    JIT f64x8∥ : 205.39x faster (parallel)
+    numexpr    :  81.07x faster
+    Numba      :  19.08x faster
+    SymPy/lam  :   0.59x slower
+
+  Accuracy  bulk                    max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x2             max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x2 parallel    max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x4             max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x4 parallel    max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x8             max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x8 parallel    max|Δ|=0.00e+00  ✔
+
+  NumPy temp arrays: ~20 binary ops → ~1526 MB peak
+  RSSN JIT: 0 temp arrays — register-resident across entire expression
+  numexpr:  ≈0 temp arrays — its own AST-based evaluator
+  Numba:    ≈0 temp arrays — LLVM-fused scalar loop
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+  5. Complex degree-5 polynomial [3 vars]
+  x^5 - y^5 + z^5 - 5*x^3*y^2 + 5*x^2*y^3 - 5*y^3*z^2 + 5*y^2*z^3 - 5*z^3*x^2 + 5*z^2*x^3 + x*y*z*(x^2 + y^2 + z^2)
+──────────────────────────────────────────────────────────────────────────────────────────────
+
+  RSSN JIT  bulk  (scalar, Rust loop)                  155.291 ms    15.53 ns/eval   97.82x vs NumPy
+  RSSN JIT  batch f64x2                                 45.168 ms     4.52 ns/eval  336.32x vs NumPy
+  RSSN JIT  f64x2 parallel                              45.234 ms     4.52 ns/eval  335.83x vs NumPy
+  RSSN JIT  batch f64x4 (2×F64X2)                       42.556 ms     4.26 ns/eval  356.96x vs NumPy
+  RSSN JIT  f64x4 parallel                              42.654 ms     4.27 ns/eval  356.14x vs NumPy
+  RSSN JIT  batch f64x8 (4×F64X2)                       42.801 ms     4.28 ns/eval  354.91x vs NumPy
+  RSSN JIT  f64x8 parallel (dtact fibers)               45.892 ms     4.59 ns/eval  331.01x vs NumPy
+  NumPy     (SIMD/C, hand-optimised)                  15190.814 ms  1519.08 ns/eval
+  numexpr   (multi-threaded JIT)                       163.108 ms    16.31 ns/eval   93.13x vs NumPy
+  Numba     (LLVM, vectorized ufunc)                   178.396 ms    17.84 ns/eval   85.15x vs NumPy
+  SymPy     lambdify → numpy                          14703.106 ms  1470.31 ns/eval    1.03x vs NumPy
+
+  Speedups vs NumPy (15190.81 ms baseline):
+    JIT bulk   :  97.82x faster
+    JIT f64x2  : 336.32x faster
+    JIT f64x2∥ : 335.83x faster (parallel)
+    JIT f64x4  : 356.96x faster
+    JIT f64x4∥ : 356.14x faster (parallel)
+    JIT f64x8  : 354.91x faster
+    JIT f64x8∥ : 331.01x faster (parallel)
+    numexpr    :  93.13x faster
+    Numba      :  85.15x faster
+    SymPy/lam  :   1.03x faster
+
+  Accuracy  bulk                    max|Δ|=1.46e-11  ✔
+  Accuracy  batch f64x2             max|Δ|=1.46e-11  ✔
+  Accuracy  batch f64x2 parallel    max|Δ|=1.46e-11  ✔
+  Accuracy  batch f64x4             max|Δ|=1.46e-11  ✔
+  Accuracy  batch f64x4 parallel    max|Δ|=1.46e-11  ✔
+  Accuracy  batch f64x8             max|Δ|=1.46e-11  ✔
+  Accuracy  batch f64x8 parallel    max|Δ|=1.46e-11  ✔
+
+  NumPy temp arrays: ~44 binary ops → ~3357 MB peak
+  RSSN JIT: 0 temp arrays — register-resident across entire expression
+  numexpr:  ≈0 temp arrays — its own AST-based evaluator
+  Numba:    ≈0 temp arrays — LLVM-fused scalar loop
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+  6. Positive Nested Sqrt [2 vars]
+  (x^2 + 1.0)^0.5 + (x^2 + y^2 + 1.0)^0.5 + (x^2 + y^2 + 2.0)^0.5
+──────────────────────────────────────────────────────────────────────────────────────────────
+
+  RSSN JIT  bulk  (scalar, Rust loop)                  342.537 ms    34.25 ns/eval   27.52x vs NumPy
+  RSSN JIT  batch f64x2                                105.035 ms    10.50 ns/eval   89.73x vs NumPy
+  RSSN JIT  f64x2 parallel                              94.610 ms     9.46 ns/eval   99.62x vs NumPy
+  RSSN JIT  batch f64x4 (2×F64X2)                      101.691 ms    10.17 ns/eval   92.69x vs NumPy
+  RSSN JIT  f64x4 parallel                              94.105 ms     9.41 ns/eval  100.16x vs NumPy
+  RSSN JIT  batch f64x8 (4×F64X2)                       92.763 ms     9.28 ns/eval  101.61x vs NumPy
+  RSSN JIT  f64x8 parallel (dtact fibers)               93.830 ms     9.38 ns/eval  100.45x vs NumPy
+  NumPy     (SIMD/C, hand-optimised)                  9425.277 ms   942.53 ns/eval
+  numexpr   (multi-threaded JIT)                        85.005 ms     8.50 ns/eval  110.88x vs NumPy
+  Numba     (LLVM, vectorized ufunc)                   172.047 ms    17.20 ns/eval   54.78x vs NumPy
+  SymPy     lambdify → numpy                          3511.592 ms   351.16 ns/eval    2.68x vs NumPy
+
+  Speedups vs NumPy (9425.28 ms baseline):
+    JIT bulk   :  27.52x faster
+    JIT f64x2  :  89.73x faster
+    JIT f64x2∥ :  99.62x faster (parallel)
+    JIT f64x4  :  92.69x faster
+    JIT f64x4∥ : 100.16x faster (parallel)
+    JIT f64x8  : 101.61x faster
+    JIT f64x8∥ : 100.45x faster (parallel)
+    numexpr    : 110.88x faster
+    Numba      :  54.78x faster
+    SymPy/lam  :   2.68x faster
+
+  Accuracy  bulk                    max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x2             max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x2 parallel    max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x4             max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x4 parallel    max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x8             max|Δ|=0.00e+00  ✔
+  Accuracy  batch f64x8 parallel    max|Δ|=0.00e+00  ✔
+
+  NumPy temp arrays: ~15 binary ops → ~1144 MB peak
+  RSSN JIT: 0 temp arrays — register-resident across entire expression
+  numexpr:  ≈0 temp arrays — its own AST-based evaluator
+  Numba:    ≈0 temp arrays — LLVM-fused scalar loop
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+  7. Redundant Algebraic Cubics (E-Graph target) [2 vars]
+  ((x + y)^3 - (x - y)^3 - 6*x^2*y) / (y^2 + 1.0) + x*y - y*x
+──────────────────────────────────────────────────────────────────────────────────────────────
+
+  RSSN JIT  bulk  (scalar, Rust loop)                  104.884 ms    10.49 ns/eval   15.73x vs NumPy
+  RSSN JIT  batch f64x2                                 28.010 ms     2.80 ns/eval   58.92x vs NumPy
+  RSSN JIT  f64x2 parallel                              28.125 ms     2.81 ns/eval   58.68x vs NumPy
+  RSSN JIT  batch f64x4 (2×F64X2)                       24.799 ms     2.48 ns/eval   66.55x vs NumPy
+  RSSN JIT  f64x4 parallel                              24.925 ms     2.49 ns/eval   66.21x vs NumPy
+  RSSN JIT  batch f64x8 (4×F64X2)                       23.432 ms     2.34 ns/eval   70.43x vs NumPy
+  RSSN JIT  f64x8 parallel (dtact fibers)               23.751 ms     2.38 ns/eval   69.48x vs NumPy
+  NumPy     (SIMD/C, hand-optimised)                  1650.302 ms   165.03 ns/eval
+  numexpr   (multi-threaded JIT)                        84.983 ms     8.50 ns/eval   19.42x vs NumPy
+  Numba     (LLVM, vectorized ufunc)                   165.091 ms    16.51 ns/eval   10.00x vs NumPy
+  SymPy     lambdify → numpy                          9067.141 ms   906.71 ns/eval    0.18x vs NumPy
+
+  Speedups vs NumPy (1650.30 ms baseline):
+    JIT bulk   :  15.73x faster
+    JIT f64x2  :  58.92x faster
+    JIT f64x2∥ :  58.68x faster (parallel)
+    JIT f64x4  :  66.55x faster
+    JIT f64x4∥ :  66.21x faster (parallel)
+    JIT f64x8  :  70.43x faster
+    JIT f64x8∥ :  69.48x faster (parallel)
+    numexpr    :  19.42x faster
+    Numba      :  10.00x faster
+    SymPy/lam  :   0.18x slower
+
+  Accuracy  bulk                    max|Δ|=5.80e-14  ✔
+  Accuracy  batch f64x2             max|Δ|=5.80e-14  ✔
+  Accuracy  batch f64x2 parallel    max|Δ|=5.80e-14  ✔
+  Accuracy  batch f64x4             max|Δ|=5.80e-14  ✔
+  Accuracy  batch f64x4 parallel    max|Δ|=5.80e-14  ✔
+  Accuracy  batch f64x8             max|Δ|=5.80e-14  ✔
+  Accuracy  batch f64x8 parallel    max|Δ|=5.80e-14  ✔
+
+  NumPy temp arrays: ~16 binary ops → ~1221 MB peak
+  RSSN JIT: 0 temp arrays — register-resident across entire expression
+  numexpr:  ≈0 temp arrays — its own AST-based evaluator
+  Numba:    ≈0 temp arrays — LLVM-fused scalar loop
+
+==============================================================================================
+  SUMMARY — speedup vs hand-optimised NumPy  (higher = faster)
+  Expression                                           bulk      f64x2     f64x2∥      f64x4     f64x4∥      f64x8     f64x8∥    numexpr      numba      sympy
+  ──────────────────────────────────────────────  ─────────  ─────────  ─────────  ─────────  ─────────  ─────────  ─────────  ─────────  ─────────  ─────────
+  1. Trivial (baseline)                               5.44x     22.49x     30.11x     20.75x     30.35x     19.70x     26.40x     25.73x      2.81x      1.18x
+  2. Degree-4 polynomial                              9.25x     38.48x     37.57x     39.53x     42.17x     43.59x     45.22x     29.68x      5.77x      1.09x
+  3. Cubic surface                                   59.66x    147.33x    211.68x    108.77x    252.11x    113.66x    259.47x     70.73x     47.26x      0.72x
+  4. Rational w/ CSE                                 48.77x    196.00x    196.28x    222.81x    218.02x    225.96x    205.39x     81.07x     19.08x      0.59x
+  5. Complex degree-5 polynomial [3 vars]            97.82x    336.32x    335.83x    356.96x    356.14x    354.91x    331.01x     93.13x     85.15x      1.03x
+  6. Positive Nested Sqrt [2 vars]                   27.52x     89.73x     99.62x     92.69x    100.16x    101.61x    100.45x    110.88x     54.78x      2.68x
+  7. Redundant Algebraic Cubics (E-Graph target) [2 vars]     15.73x     58.92x     58.68x     66.55x     66.21x     70.43x     69.48x     19.42x     10.00x      0.18x
+
+  Observations:
+  • Speedup grows with expression complexity as NumPy&#39;s intermediates
+    overflow L2/L3 cache at N=10,000,000.
+  • RSSN JIT is register-resident: pays one mem read/write per input.
+  • numexpr parses a string AST and avoids most temporaries; competitive
+    on simple expressions, RSSN wins on deeply nested trees (no Python
+    overhead, full algebraic simplification, custom FMA peepholes).
+  • Numba (vectorized) compiles a scalar kernel to LLVM; matches or
+    exceeds NumPy on simple ops, RSSN f64x4 pulls ahead on complex ones.
+
+==============================================================================================</code></pre>
+</details>
+<details>
+<summary>
+Commit: 730e573 | Date: 2026-05-30
+</summary>
+<h1
+id="project-updates-rssn-advanced-v0.1.1-and-bincode-next-maintenance-timeline-3">Project
+updates: rssn-advanced v0.1.1 and bincode-next maintenance timeline</h1>
+<p>rssn-advanced v0.1.1 has been released on May 29, 2026 CST to fix
+several critical bugs on <code>aarch64</code> platforms. Other updates
+are also on the way, so please run <code>cargo update</code> often to
+get your deps up to date. rssn-advanced will also consider for adding
+GPU JIT support and prepare for supporting another PINN research
+project. Also, we have decided that bincode-next v3 stable will be
+released as early as August 2026, but if we think the testing is still
+not sufficient (which seems to probably be the case), the release will
+be delayed anyway.</p>
+<p>And the updated bench report:</p>
+<pre class="text"><code>==============================================================================
+   RSSN-Advanced JIT vs NumPy — Bulk Evaluation Benchmark
+   N = 1,000,000 rows per expression  |  5 repeats, best time reported
+==============================================================================
+
+──────────────────────────────────────────────────────────────────────────────
+  1. Trivial (baseline)
+  x + y + 10.0
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.383 ms     2.38 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.147 ms     1.15 ns/eval
+  NumPy (SIMD / C, hand-optimised)                7.314 ms     7.31 ns/eval
+  SymPy lambdify → numpy backend                  6.660 ms     6.66 ns/eval
+
+  JIT bulk  vs NumPy:  3.07x faster
+  JIT batch vs NumPy:  6.38x faster
+
+  Accuracy  bulk  max|Δ|=0.00e+00  ✔
+            batch max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~2 ops → ~15 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  2. Degree-4 polynomial  (x-y)^4  [2 vars]
+  x^4 - 4*x^3*y + 6*x^2*y^2 - 4*x*y^3 + y^4
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              3.470 ms     3.47 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.438 ms     1.44 ns/eval
+  NumPy (SIMD / C, hand-optimised)               27.584 ms    27.58 ns/eval
+  SymPy lambdify → numpy backend                 27.708 ms    27.71 ns/eval
+
+  JIT bulk  vs NumPy:  7.95x faster
+  JIT batch vs NumPy: 19.18x faster
+
+  Accuracy  bulk  max|Δ|=5.46e-12  ✔
+            batch max|Δ|=5.46e-12  ✔
+
+  NumPy intermediate arrays: ~16 ops → ~122 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  3. Cubic surface  [3 vars, 10 terms]
+  x^3 + y^3 + z^3 - 3*x*y*z + x^2*y - x*y^2 + y^2*z - y*z^2 + z^2*x - z*x^2
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              4.368 ms     4.37 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           2.059 ms     2.06 ns/eval
+  NumPy (SIMD / C, hand-optimised)              104.586 ms   104.59 ns/eval
+  SymPy lambdify → numpy backend                192.272 ms   192.27 ns/eval
+
+  JIT bulk  vs NumPy: 23.94x faster
+  JIT batch vs NumPy: 50.79x faster
+
+  Accuracy  bulk  max|Δ|=2.84e-13  ✔
+            batch max|Δ|=2.84e-13  ✔
+
+  NumPy intermediate arrays: ~27 ops → ~206 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  4. Rational w/ CSE  [2 vars, repeated subexpr]
+  (x^2 + y^2) / (x^2 + y^2 + 1.0) + x*y*(x^2 - y^2) / (x^2 + y^2 + 1.0)^2
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.983 ms     2.98 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.384 ms     1.38 ns/eval
+  NumPy (SIMD / C, hand-optimised)               30.108 ms    30.11 ns/eval
+  SymPy lambdify → numpy backend                129.223 ms   129.22 ns/eval
+
+  JIT bulk  vs NumPy: 10.09x faster
+  JIT batch vs NumPy: 21.75x faster
+
+  Accuracy  bulk  max|Δ|=0.00e+00  ✔
+            batch max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~20 ops → ~153 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+==============================================================================
+  SUMMARY: JIT speedup vs hand-optimised NumPy
+  Expression                                          bulk     batch
+  ──────────────────────────────────────────────  ────────  ────────
+  1. Trivial (baseline)                             3.07x    6.38x
+  2. Degree-4 polynomial                            7.95x   19.18x
+  3. Cubic surface                                 23.94x   50.79x
+  4. Rational w/ CSE                               10.09x   21.75x
+
+  Observation: speedup grows with expression complexity because
+  NumPy&#39;s intermediate arrays overflow L2/L3 cache at N=1,000,000.
+  JIT maintains register-resident computation across the entire
+  expression, paying one memory read/write per input element.
+==============================================================================</code></pre>
+<p>v0.1.2:</p>
+<pre class="text"><code>==========================================================================================
+   RSSN-Advanced JIT vs NumPy — Bulk Evaluation Benchmark
+   N = 1,000,000 rows per expression  |  5 repeats, best time reported
+==========================================================================================
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  1. Trivial (baseline)
+  x + y + 10.0
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.138 ms     2.14 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.075 ms     1.07 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         1.165 ms     1.16 ns/eval
+  NumPy (SIMD / C, hand-optimised)                3.336 ms     3.34 ns/eval
+  SymPy lambdify → numpy backend                  2.518 ms     2.52 ns/eval
+
+  JIT bulk        vs NumPy:  1.56x faster
+  JIT batch f64x2 vs NumPy:  3.10x faster
+  JIT batch f64x4 vs NumPy:  2.86x faster
+
+  Accuracy  bulk        max|Δ|=0.00e+00  ✔
+            batch f64x2 max|Δ|=0.00e+00  ✔
+            batch f64x4 max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~2 ops → ~15 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  2. Degree-4 polynomial  (x-y)^4  [2 vars]
+  x^4 - 4*x^3*y + 6*x^2*y^2 - 4*x*y^3 + y^4
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              3.388 ms     3.39 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.364 ms     1.36 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         1.292 ms     1.29 ns/eval
+  NumPy (SIMD / C, hand-optimised)               21.848 ms    21.85 ns/eval
+  SymPy lambdify → numpy backend                 20.799 ms    20.80 ns/eval
+
+  JIT bulk        vs NumPy:  6.45x faster
+  JIT batch f64x2 vs NumPy: 16.01x faster
+  JIT batch f64x4 vs NumPy: 16.92x faster
+
+  Accuracy  bulk        max|Δ|=5.46e-12  ✔
+            batch f64x2 max|Δ|=5.46e-12  ✔
+            batch f64x4 max|Δ|=5.46e-12  ✔
+
+  NumPy intermediate arrays: ~16 ops → ~122 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  3. Cubic surface  [3 vars, 10 terms]
+  x^3 + y^3 + z^3 - 3*x*y*z + x^2*y - x*y^2 + y^2*z - y*z^2 + z^2*x - z*x^2
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              4.163 ms     4.16 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.854 ms     1.85 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         1.761 ms     1.76 ns/eval
+  NumPy (SIMD / C, hand-optimised)               82.865 ms    82.86 ns/eval
+  SymPy lambdify → numpy backend                 94.077 ms    94.08 ns/eval
+
+  JIT bulk        vs NumPy: 19.90x faster
+  JIT batch f64x2 vs NumPy: 44.70x faster
+  JIT batch f64x4 vs NumPy: 47.07x faster
+
+  Accuracy  bulk        max|Δ|=2.84e-13  ✔
+            batch f64x2 max|Δ|=2.84e-13  ✔
+            batch f64x4 max|Δ|=2.84e-13  ✔
+
+  NumPy intermediate arrays: ~27 ops → ~206 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  4. Rational w/ CSE  [2 vars, repeated subexpr]
+  (x^2 + y^2) / (x^2 + y^2 + 1.0) + x*y*(x^2 - y^2) / (x^2 + y^2 + 1.0)^2
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              3.072 ms     3.07 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.428 ms     1.43 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         1.309 ms     1.31 ns/eval
+  NumPy (SIMD / C, hand-optimised)               16.425 ms    16.42 ns/eval
+  SymPy lambdify → numpy backend                 23.325 ms    23.32 ns/eval
+
+  JIT bulk        vs NumPy:  5.35x faster
+  JIT batch f64x2 vs NumPy: 11.50x faster
+  JIT batch f64x4 vs NumPy: 12.55x faster
+
+  Accuracy  bulk        max|Δ|=0.00e+00  ✔
+            batch f64x2 max|Δ|=0.00e+00  ✔
+            batch f64x4 max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~20 ops → ~153 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  5. Complex degree-5 polynomial [3 vars]
+  x^5 - y^5 + z^5 - 5*x^3*y^2 + 5*x^2*y^3 - 5*y^3*z^2 + 5*y^2*z^3 - 5*z^3*x^2 + 5*z^2*x^3 + x*y*z*(x^2 + y^2 + z^2)
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              5.588 ms     5.59 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           2.440 ms     2.44 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         2.442 ms     2.44 ns/eval
+  NumPy (SIMD / C, hand-optimised)              212.842 ms   212.84 ns/eval
+  SymPy lambdify → numpy backend                218.957 ms   218.96 ns/eval
+
+  JIT bulk        vs NumPy: 38.09x faster
+  JIT batch f64x2 vs NumPy: 87.24x faster
+  JIT batch f64x4 vs NumPy: 87.15x faster
+
+  Accuracy  bulk        max|Δ|=1.46e-11  ✔
+            batch f64x2 max|Δ|=1.46e-11  ✔
+            batch f64x4 max|Δ|=1.46e-11  ✔
+
+  NumPy intermediate arrays: ~44 ops → ~336 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────────────────
+  6. Positive Nested Sqrt [2 vars]
+  (x^2 + 1.0)^0.5 + (x^2 + y^2 + 1.0)^0.5 + (x^2 + y^2 + 2.0)^0.5
+──────────────────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              4.612 ms     4.61 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           2.210 ms     2.21 ns/eval
+  Rust JIT batch (4-row F64X4 vectorised)         2.189 ms     2.19 ns/eval
+  NumPy (SIMD / C, hand-optimised)               16.013 ms    16.01 ns/eval
+  SymPy lambdify → numpy backend                 15.169 ms    15.17 ns/eval
+
+  JIT bulk        vs NumPy:  3.47x faster
+  JIT batch f64x2 vs NumPy:  7.24x faster
+  JIT batch f64x4 vs NumPy:  7.32x faster
+
+  Accuracy  bulk        max|Δ|=0.00e+00  ✔
+            batch f64x2 max|Δ|=0.00e+00  ✔
+            batch f64x4 max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~15 ops → ~114 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+==========================================================================================
+  SUMMARY: JIT speedup vs hand-optimised NumPy
+  Expression                                          bulk     f64x2       f64x4
+  ──────────────────────────────────────────────  ────────  ────────  ──────────
+  1. Trivial (baseline)                             1.56x    3.10x      2.86x
+  2. Degree-4 polynomial                            6.45x   16.01x     16.92x
+  3. Cubic surface                                 19.90x   44.70x     47.07x
+  4. Rational w/ CSE                                5.35x   11.50x     12.55x
+  5. Complex degree-5 polynomial [3 vars]          38.09x   87.24x     87.15x
+  6. Positive Nested Sqrt [2 vars]                  3.47x    7.24x      7.32x
+
+  Observation: speedup grows with expression complexity because
+  NumPy&#39;s intermediate arrays overflow L2/L3 cache at N=1,000,000.
+  JIT maintains register-resident computation across the entire
+  expression, paying one memory read/write per input element.
+==========================================================================================</code></pre>
+</details>
+<details>
+<summary>
+Commit: 0fa7419 | Date: 2026-05-29
+</summary>
+<h1
+id="project-updates-rssn-advanced-v0.1.1-and-bincode-next-maintenance-timeline-4">Project
+updates: rssn-advanced v0.1.1 and bincode-next maintenance timeline</h1>
+<p>rssn-advanced v0.1.1 has been released on May 29, 2026 CST to fix
+several critical bugs on <code>aarch64</code> platforms. Other updates
+are also on the way, so please run <code>cargo update</code> often to
+get your deps up to date. rssn-advanced will also consider for adding
+GPU JIT support and prepare for supporting another PINN research
+project. Also, we have decided that bincode-next v3 stable will be
+released as early as August 2026, but if we think the testing is still
+not sufficient (which seems to probably be the case), the release will
+be delayed anyway.</p>
+<p>And the updated bench report:</p>
+<pre class="text"><code>==============================================================================
+   RSSN-Advanced JIT vs NumPy — Bulk Evaluation Benchmark
+   N = 1,000,000 rows per expression  |  5 repeats, best time reported
+==============================================================================
+
+──────────────────────────────────────────────────────────────────────────────
+  1. Trivial (baseline)
+  x + y + 10.0
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.383 ms     2.38 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.147 ms     1.15 ns/eval
+  NumPy (SIMD / C, hand-optimised)                7.314 ms     7.31 ns/eval
+  SymPy lambdify → numpy backend                  6.660 ms     6.66 ns/eval
+
+  JIT bulk  vs NumPy:  3.07x faster
+  JIT batch vs NumPy:  6.38x faster
+
+  Accuracy  bulk  max|Δ|=0.00e+00  ✔
+            batch max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~2 ops → ~15 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  2. Degree-4 polynomial  (x-y)^4  [2 vars]
+  x^4 - 4*x^3*y + 6*x^2*y^2 - 4*x*y^3 + y^4
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              3.470 ms     3.47 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.438 ms     1.44 ns/eval
+  NumPy (SIMD / C, hand-optimised)               27.584 ms    27.58 ns/eval
+  SymPy lambdify → numpy backend                 27.708 ms    27.71 ns/eval
+
+  JIT bulk  vs NumPy:  7.95x faster
+  JIT batch vs NumPy: 19.18x faster
+
+  Accuracy  bulk  max|Δ|=5.46e-12  ✔
+            batch max|Δ|=5.46e-12  ✔
+
+  NumPy intermediate arrays: ~16 ops → ~122 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  3. Cubic surface  [3 vars, 10 terms]
+  x^3 + y^3 + z^3 - 3*x*y*z + x^2*y - x*y^2 + y^2*z - y*z^2 + z^2*x - z*x^2
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              4.368 ms     4.37 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           2.059 ms     2.06 ns/eval
+  NumPy (SIMD / C, hand-optimised)              104.586 ms   104.59 ns/eval
+  SymPy lambdify → numpy backend                192.272 ms   192.27 ns/eval
+
+  JIT bulk  vs NumPy: 23.94x faster
+  JIT batch vs NumPy: 50.79x faster
+
+  Accuracy  bulk  max|Δ|=2.84e-13  ✔
+            batch max|Δ|=2.84e-13  ✔
+
+  NumPy intermediate arrays: ~27 ops → ~206 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  4. Rational w/ CSE  [2 vars, repeated subexpr]
+  (x^2 + y^2) / (x^2 + y^2 + 1.0) + x*y*(x^2 - y^2) / (x^2 + y^2 + 1.0)^2
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.983 ms     2.98 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.384 ms     1.38 ns/eval
+  NumPy (SIMD / C, hand-optimised)               30.108 ms    30.11 ns/eval
+  SymPy lambdify → numpy backend                129.223 ms   129.22 ns/eval
+
+  JIT bulk  vs NumPy: 10.09x faster
+  JIT batch vs NumPy: 21.75x faster
+
+  Accuracy  bulk  max|Δ|=0.00e+00  ✔
+            batch max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~20 ops → ~153 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+==============================================================================
+  SUMMARY: JIT speedup vs hand-optimised NumPy
+  Expression                                          bulk     batch
+  ──────────────────────────────────────────────  ────────  ────────
+  1. Trivial (baseline)                             3.07x    6.38x
+  2. Degree-4 polynomial                            7.95x   19.18x
+  3. Cubic surface                                 23.94x   50.79x
+  4. Rational w/ CSE                               10.09x   21.75x
+
+  Observation: speedup grows with expression complexity because
+  NumPy&#39;s intermediate arrays overflow L2/L3 cache at N=1,000,000.
+  JIT maintains register-resident computation across the entire
+  expression, paying one memory read/write per input element.
+==============================================================================
+</code></pre>
+</details>
+<hr />
+<center>
+<small><a href="https://panayang.blog.apich.org">Back to main</a> |
+Copyright © 2026 Xinyu Yang</small>
+</center>
+</body>
+</html>
