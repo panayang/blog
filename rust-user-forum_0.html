@@ -1,0 +1,1928 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>rust-user-forum_0</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<p><strong>Last Modified:</strong> <code>2afd47c</code> on
+2026-06-20</p>
+<h1 id="releasing-dtact-v0.2.2-and-rssn-advanced-v0.1.0">Releasing dtact
+v0.2.2 and rssn-advanced v0.1.0</h1>
+<h1 id="releasing-dtact-v0.2.2-and-rssn-advanced-v0.1.0-1">Releasing
+dtact v0.2.2 and rssn-advanced v0.1.0</h1>
+<p><strong>Hello Rustaceans!</strong></p>
+<p>Today we are releasing dtact v0.2.2 and rssn-advanced v0.1.0, both of
+which are experimental, high-performance projects currently under
+development. Dtact is an async concurrent engine, and rssn-advanced is a
+new generation symbolic core for rssn. Both will be detailed below.</p>
+<h2 id="dtact">Dtact</h2>
+<p>Dtact is a coordinative, truly lockless async runtime designed for
+maximum work coordination speed and the highest throughput. In short, we
+mainly utilized a P2P network, a Lock-Free Context Arena, and a
+Zero-Copy Future Migration to achieve this. For a detailed analysis of
+the architecture, please refer to https://dtact.apich.org/ and
+https://github.com/Apich-Organization/dtact. The website’s UI was
+written by AI—because we really aren’t that good at writing UI, so
+please forgive us for that. A detailed benchmark report and CI run links
+can also be found on the official website, but in short, we can see the
+following chart (CI run:
+https://github.com/Apich-Organization/dtact/actions/runs/26011780070/job/76453764923):</p>
+<h3 id="task-spawn-efficiency">Task Spawn Efficiency</h3>
+<p>This benchmark measures the time required to spawn and execute a
+batch of asynchronous tasks.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Task Scale</th>
+<th>Runtime</th>
+<th>Min Bound</th>
+<th>Mean</th>
+<th>Max Bound</th>
+<th>Dtact Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>1M</strong></td>
+<td>Dtact</td>
+<td>103.92 ms</td>
+<td>104.92 ms</td>
+<td>105.94 ms</td>
+<td><br><strong>6.31x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Tokio</td>
+<td>648.02 ms</td>
+<td>662.11 ms</td>
+<td>676.42 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="odd">
+<td><strong>100k</strong></td>
+<td>Dtact</td>
+<td>11.667 ms</td>
+<td>11.807 ms</td>
+<td>11.954 ms</td>
+<td><br><strong>5.34x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Tokio</td>
+<td>61.064 ms</td>
+<td>63.067 ms</td>
+<td>65.043 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="odd">
+<td><strong>10k</strong></td>
+<td>Dtact</td>
+<td>1.9672 ms</td>
+<td>2.0144 ms</td>
+<td>2.0620 ms</td>
+<td><br><strong>2.63x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Tokio</td>
+<td>5.1595 ms</td>
+<td>5.2986 ms</td>
+<td>5.4395 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="odd">
+<td><strong>1k</strong></td>
+<td>Dtact</td>
+<td>152.301 µs</td>
+<td>157.731 µs</td>
+<td>163.311 µs</td>
+<td><br><strong>4.76x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Tokio</td>
+<td>719.65 µs</td>
+<td>750.891 µs</td>
+<td>783.411 µs</td>
+<td>Reference</td>
+</tr>
+</tbody>
+</table>
+<h3 id="yield-efficiency">Yield Efficiency</h3>
+<p>This test measures the time taken for 10 concurrent tasks to perform
+100 cooperative <code>yield_now</code> operations each.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Test Case</th>
+<th>Runtime</th>
+<th>Min Bound</th>
+<th>Mean</th>
+<th>Max Bound</th>
+<th>Comparison</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>10 tasks</strong></td>
+<td>Dtact</td>
+<td>795.651 µs</td>
+<td>827.511 µs</td>
+<td>860.191 µs</td>
+<td>~4.41x slower</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Tokio</td>
+<td>179.981 µs</td>
+<td>187.731 µs</td>
+<td>195.651 µs</td>
+<td><br><strong>4.41x faster</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="work-deflection-hot-core-performance">Work Deflection (Hot Core)
+Performance</h3>
+<p>This benchmark simulates task dispatching and throttle coordination
+under heavy load imbalances across a multi-core scheduler.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Task Scale</th>
+<th>Runtime</th>
+<th>Min Bound</th>
+<th>Mean</th>
+<th>Max Bound</th>
+<th>Dtact Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>10M</strong></td>
+<td>Dtact</td>
+<td>1.6624 s</td>
+<td>1.6792 s</td>
+<td>1.6962 s</td>
+<td><br><strong>4.13x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Tokio</td>
+<td>6.8482 s</td>
+<td>6.9386 s</td>
+<td>7.0291 s</td>
+<td>Reference</td>
+</tr>
+<tr class="odd">
+<td><strong>100k</strong></td>
+<td>Dtact</td>
+<td>17.472 ms</td>
+<td>17.659 ms</td>
+<td>17.847 ms</td>
+<td><br><strong>2.84x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Tokio</td>
+<td>49.110 ms</td>
+<td>51.112 ms</td>
+<td>53.114 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="odd">
+<td><strong>10k</strong></td>
+<td>Dtact</td>
+<td>2.4961 ms</td>
+<td>2.5315 ms</td>
+<td>2.5675 ms</td>
+<td><br><strong>2.31x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Tokio</td>
+<td>5.7240 ms</td>
+<td>5.8411 ms</td>
+<td>5.9605 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="odd">
+<td><strong>1k</strong></td>
+<td>Dtact</td>
+<td>273.791 µs</td>
+<td>285.231 µs</td>
+<td>297.07 µs</td>
+<td><br><strong>2.70x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Tokio</td>
+<td>739.641 µs</td>
+<td>769.841 µs</td>
+<td>801.701 µs</td>
+<td>Reference</td>
+</tr>
+</tbody>
+</table>
+<p>The extensive use of <code>unsafe</code> and naked assembly in dtact
+may cause some doubt about this project, but we are striving to achieve
+higher engineering goals to ensure the project remains safe, and we are
+continually working on it. Also, special thanks to <span
+class="citation" data-cites="newpavlov">@newpavlov</span> and <span
+class="citation" data-cites="SkiFire13">@SkiFire13</span> for their
+helpful advice when we first tried the stackful approach in the
+bincode-next UAF backend async fiber module.</p>
+<h2 id="rssn-advanced">rssn-advanced</h2>
+<p>This project is highly experimental and is eager for external
+reviews. Its core design is my own, but it was primarily complemented by
+<span class="citation" data-cites="cn-starlabs">@cn-starlabs</span> (it
+seems he doesn’t even have a Rust-lang user account) with the help of
+Claude. After performing some architectural fixes and code quality
+improvements myself, I decided to release it alongside dtact.
+Regardless, the project currently lacks extensive code reviews and is in
+an early stage, even without fully meeting OSSF standards. However, I
+personally think it is impressive to see a full JIT symbolic computing
+engine with almost infinite extensibility that truly achieves a
+combination of symbolic and numerical computing. The official website is
+also under development, so you might prefer to check the repository
+first: https://github.com/Apich-Organization/rssn-advanced or checkout
+https://rssn-advanced.apich.org And the first performance reports:</p>
+<pre class="text"><code>==============================================================================
+   RSSN-Advanced JIT vs NumPy — Bulk Evaluation Benchmark
+   N = 1,000,000 rows per expression  |  5 repeats, best time reported
+==============================================================================
+
+──────────────────────────────────────────────────────────────────────────────
+  1. Trivial (baseline)
+  x + y + 10.0
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              1.868 ms     1.87 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.133 ms     1.13 ns/eval
+  NumPy (SIMD / C, hand-optimised)                2.824 ms     2.82 ns/eval
+  SymPy lambdify → numpy backend                  2.763 ms     2.76 ns/eval
+
+  JIT bulk  vs NumPy:  1.51x faster
+  JIT batch vs NumPy:  2.49x faster
+
+  Accuracy  bulk  max|Δ|=0.00e+00  ✔
+            batch max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~2 ops → ~15 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  2. Degree-4 polynomial  (x-y)^4  [2 vars]
+  x^4 - 4*x^3*y + 6*x^2*y^2 - 4*x*y^3 + y^4
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.729 ms     2.73 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.276 ms     1.28 ns/eval
+  NumPy (SIMD / C, hand-optimised)               19.207 ms    19.21 ns/eval
+  SymPy lambdify → numpy backend                 18.933 ms    18.93 ns/eval
+
+  JIT bulk  vs NumPy:  7.04x faster
+  JIT batch vs NumPy: 15.06x faster
+
+  Accuracy  bulk  max|Δ|=5.46e-12  ✔
+            batch max|Δ|=5.46e-12  ✔
+
+  NumPy intermediate arrays: ~16 ops → ~122 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  3. Cubic surface  [3 vars, 10 terms]
+  x^3 + y^3 + z^3 - 3*x*y*z + x^2*y - x*y^2 + y^2*z - y*z^2 + z^2*x - z*x^2
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              3.733 ms     3.73 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.772 ms     1.77 ns/eval
+  NumPy (SIMD / C, hand-optimised)               75.751 ms    75.75 ns/eval
+  SymPy lambdify → numpy backend                 78.214 ms    78.21 ns/eval
+
+  JIT bulk  vs NumPy: 20.29x faster
+  JIT batch vs NumPy: 42.74x faster
+
+  Accuracy  bulk  max|Δ|=2.84e-13  ✔
+            batch max|Δ|=2.84e-13  ✔
+
+  NumPy intermediate arrays: ~27 ops → ~206 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  4. Rational w/ CSE  [2 vars, repeated subexpr]
+  (x^2 + y^2) / (x^2 + y^2 + 1.0) + x*y*(x^2 - y^2) / (x^2 + y^2 + 1.0)^2
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.534 ms     2.53 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.266 ms     1.27 ns/eval
+  NumPy (SIMD / C, hand-optimised)               15.913 ms    15.91 ns/eval
+  SymPy lambdify → numpy backend                 22.961 ms    22.96 ns/eval
+
+  JIT bulk  vs NumPy:  6.28x faster
+  JIT batch vs NumPy: 12.57x faster
+
+  Accuracy  bulk  max|Δ|=0.00e+00  ✔
+            batch max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~20 ops → ~153 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+==============================================================================
+  SUMMARY: JIT speedup vs hand-optimised NumPy
+  Expression                                          bulk     batch
+  ──────────────────────────────────────────────  ────────  ────────
+  1. Trivial (baseline)                             1.51x    2.49x
+  2. Degree-4 polynomial                            7.04x   15.06x
+  3. Cubic surface                                 20.29x   42.74x
+  4. Rational w/ CSE                                6.28x   12.57x
+
+  Observation: speedup grows with expression complexity because
+  NumPy&#39;s intermediate arrays overflow L2/L3 cache at N=1,000,000.
+  JIT maintains register-resident computation across the entire
+  expression, paying one memory read/write per input element.
+==============================================================================</code></pre>
+<p>I ran it in Python using CPython FFI, so it is significantly slower
+than if it were compiled into a Rust binary—but for the sake of
+fairness, I have kept it as is.</p>
+<p>Also from our docs: <strong>Architecture</strong> | Module | Role |
+|——–|——| | [<code>dag</code>] | Hash-consed expression DAG — the
+canonical, deduplicated store for all symbolic nodes | |
+[<code>ast</code>] | Lightweight local tree projection of a DAG subgraph
+via relative <code>i32</code> pointers | | [<code>parser</code>] |
+<code>nom</code>-based infix parser: <code>"x^2 + 2*x + 1"</code> → DAG
+root | | [<code>jit</code>] <em>(feature:
+<code>cranelift-jit</code>/<code>jit</code>)</em> | Cranelift JIT; emits
+scalar <code>f64</code> closures and 2-row ILP batch functions | |
+[<code>heuristic</code>] | Configurable greedy/beam simplifier with a
+pluggable [<code>heuristic::rule_registry::RuleRegistry</code>] | |
+[<code>egraph</code>] | Lightweight equality saturation over the DAG (no
+<code>egg</code> dependency) | | [<code>custom</code>] | Unified
+custom-operator system — one
+[<code>custom::descriptor::CustomOpDescriptor</code>] wires into JIT +
+simplifier + e-graph | | [<code>simd</code>] | Slice-level batch
+arithmetic using the inline-asm presets | | [<code>asm_presets</code>] |
+Hand-written <code>f64×2</code> / <code>f64×4</code> kernels for
+<code>x86_64</code> (SSE2/AVX2/AES-NI), <code>AArch64</code>
+(NEON/crypto), riscv64 (RVV/Zkn) | | [<code>ffi</code>] | Flat
+<code>extern "C"</code> surface generated by <code>cbindgen</code>;
+includes a fiber-backed async bridge | | [<code>parallel</code>] |
+Fiber-based parallel simplification via the <code>dtact</code> runtime |
+| [<code>storage</code>] | Disk-backed DAG spillover and a
+frequency-based hot-node cache | | [<code>error</code>] | Cold-path
+error types and the <code>rssn_error!</code> macro |</p>
+<h2 id="bincode-next">Bincode-next</h2>
+<p>Finally, a small update for <code>bincode-next</code> at the end of
+this post to avoid posting too frequently. <code>Bincode-next</code> has
+released v3.0.0-rc.15, and we are continuously fuzzing. We have decided
+to release the stable version after joining the OSS-Fuzz project and
+running it for a while. Link:
+https://github.com/Apich-Organization/bincode</p>
+<h2 id="common-links">Common Links</h2>
+<p>Discord Server: https://discord.gg/D5e2czMTT9 Contact E-mail:
+info@apich.org OSSF Registration (bincode-next):
+https://www.bestpractices.dev/projects/12960 OSSF Registration (dtact):
+https://www.bestpractices.dev/en/projects/12962/passing Score Card:
+https://securityscorecards.dev/viewer/?uri=github.com/Apich-Organization/bincode
+Discussions on Dtact style designs:
+https://users.rust-lang.org/t/discussion-on-synchronous-crate-concurrency-refactor-using-stackful-coroutines-model-in-rust/139246</p>
+<h3 id="history">History</h3>
+<details>
+<summary>
+Commit: 2afd47c | Date: 2026-06-20
+</summary>
+<h1 id="releasing-dtact-v0.2.2-and-rssn-advanced-v0.1.0-2">Releasing
+dtact v0.2.2 and rssn-advanced v0.1.0</h1>
+<p><strong>Hello Rustaceans!</strong></p>
+<p>Today we are releasing dtact v0.2.2 and rssn-advanced v0.1.0, both of
+which are experimental, high-performance projects currently under
+development. Dtact is an async concurrent engine, and rssn-advanced is a
+new generation symbolic core for rssn. Both will be detailed below.</p>
+<h2 id="dtact-1">Dtact</h2>
+<p>Dtact is a coordinative, truly lockless async runtime designed for
+maximum work coordination speed and the highest throughput. In short, we
+mainly utilized a P2P network, a Lock-Free Context Arena, and a
+Zero-Copy Future Migration to achieve this. For a detailed analysis of
+the architecture, please refer to https://dtact.apich.org/ and
+https://github.com/Apich-Organization/dtact. The website’s UI was
+written by AI—because we really aren’t that good at writing UI, so
+please forgive us for that. A detailed benchmark report and CI run links
+can also be found on the official website, but in short, we can see the
+following chart (CI run:
+https://github.com/Apich-Organization/dtact/actions/runs/26011780070/job/76453764923):</p>
+<h3 id="task-spawn-efficiency-1">Task Spawn Efficiency</h3>
+<p>This benchmark measures the time required to spawn and execute a
+batch of asynchronous tasks.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Task Scale</th>
+<th>Runtime</th>
+<th>Min Bound</th>
+<th>Mean</th>
+<th>Max Bound</th>
+<th>Dtact Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>1M</strong></td>
+<td>Dtact</td>
+<td>103.92 ms</td>
+<td>104.92 ms</td>
+<td>105.94 ms</td>
+<td><br><strong>6.31x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Tokio</td>
+<td>648.02 ms</td>
+<td>662.11 ms</td>
+<td>676.42 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="odd">
+<td><strong>100k</strong></td>
+<td>Dtact</td>
+<td>11.667 ms</td>
+<td>11.807 ms</td>
+<td>11.954 ms</td>
+<td><br><strong>5.34x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Tokio</td>
+<td>61.064 ms</td>
+<td>63.067 ms</td>
+<td>65.043 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="odd">
+<td><strong>10k</strong></td>
+<td>Dtact</td>
+<td>1.9672 ms</td>
+<td>2.0144 ms</td>
+<td>2.0620 ms</td>
+<td><br><strong>2.63x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Tokio</td>
+<td>5.1595 ms</td>
+<td>5.2986 ms</td>
+<td>5.4395 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="odd">
+<td><strong>1k</strong></td>
+<td>Dtact</td>
+<td>152.301 µs</td>
+<td>157.731 µs</td>
+<td>163.311 µs</td>
+<td><br><strong>4.76x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Tokio</td>
+<td>719.65 µs</td>
+<td>750.891 µs</td>
+<td>783.411 µs</td>
+<td>Reference</td>
+</tr>
+</tbody>
+</table>
+<h3 id="yield-efficiency-1">Yield Efficiency</h3>
+<p>This test measures the time taken for 10 concurrent tasks to perform
+100 cooperative <code>yield_now</code> operations each.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Test Case</th>
+<th>Runtime</th>
+<th>Min Bound</th>
+<th>Mean</th>
+<th>Max Bound</th>
+<th>Comparison</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>10 tasks</strong></td>
+<td>Dtact</td>
+<td>795.651 µs</td>
+<td>827.511 µs</td>
+<td>860.191 µs</td>
+<td>~4.41x slower</td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Tokio</td>
+<td>179.981 µs</td>
+<td>187.731 µs</td>
+<td>195.651 µs</td>
+<td><br><strong>4.41x faster</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="work-deflection-hot-core-performance-1">Work Deflection (Hot
+Core) Performance</h3>
+<p>This benchmark simulates task dispatching and throttle coordination
+under heavy load imbalances across a multi-core scheduler.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Task Scale</th>
+<th>Runtime</th>
+<th>Min Bound</th>
+<th>Mean</th>
+<th>Max Bound</th>
+<th>Dtact Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>10M</strong></td>
+<td>Dtact</td>
+<td>1.6624 s</td>
+<td>1.6792 s</td>
+<td>1.6962 s</td>
+<td><br><strong>4.13x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Tokio</td>
+<td>6.8482 s</td>
+<td>6.9386 s</td>
+<td>7.0291 s</td>
+<td>Reference</td>
+</tr>
+<tr class="odd">
+<td><strong>100k</strong></td>
+<td>Dtact</td>
+<td>17.472 ms</td>
+<td>17.659 ms</td>
+<td>17.847 ms</td>
+<td><br><strong>2.84x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Tokio</td>
+<td>49.110 ms</td>
+<td>51.112 ms</td>
+<td>53.114 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="odd">
+<td><strong>10k</strong></td>
+<td>Dtact</td>
+<td>2.4961 ms</td>
+<td>2.5315 ms</td>
+<td>2.5675 ms</td>
+<td><br><strong>2.31x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Tokio</td>
+<td>5.7240 ms</td>
+<td>5.8411 ms</td>
+<td>5.9605 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="odd">
+<td><strong>1k</strong></td>
+<td>Dtact</td>
+<td>273.791 µs</td>
+<td>285.231 µs</td>
+<td>297.07 µs</td>
+<td><br><strong>2.70x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td>Tokio</td>
+<td>739.641 µs</td>
+<td>769.841 µs</td>
+<td>801.701 µs</td>
+<td>Reference</td>
+</tr>
+</tbody>
+</table>
+<p>The extensive use of <code>unsafe</code> and naked assembly in dtact
+may cause some doubt about this project, but we are striving to achieve
+higher engineering goals to ensure the project remains safe, and we are
+continually working on it. Also, special thanks to <span
+class="citation" data-cites="newpavlov">@newpavlov</span> and <span
+class="citation" data-cites="SkiFire13">@SkiFire13</span> for their
+helpful advice when we first tried the stackful approach in the
+bincode-next UAF backend async fiber module.</p>
+<h2 id="rssn-advanced-1">rssn-advanced</h2>
+<p>This project is highly experimental and is eager for external
+reviews. Its core design is my own, but it was primarily complemented by
+<span class="citation" data-cites="cn-starlabs">@cn-starlabs</span> (it
+seems he doesn’t even have a Rust-lang user account) with the help of
+Claude. After performing some architectural fixes and code quality
+improvements myself, I decided to release it alongside dtact.
+Regardless, the project currently lacks extensive code reviews and is in
+an early stage, even without fully meeting OSSF standards. However, I
+personally think it is impressive to see a full JIT symbolic computing
+engine with almost infinite extensibility that truly achieves a
+combination of symbolic and numerical computing. The official website is
+also under development, so you might prefer to check the repository
+first: https://github.com/Apich-Organization/rssn-advanced or checkout
+https://rssn-advanced.apich.org And the first performance reports:</p>
+<pre class="text"><code>==============================================================================
+   RSSN-Advanced JIT vs NumPy — Bulk Evaluation Benchmark
+   N = 1,000,000 rows per expression  |  5 repeats, best time reported
+==============================================================================
+
+──────────────────────────────────────────────────────────────────────────────
+  1. Trivial (baseline)
+  x + y + 10.0
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              1.868 ms     1.87 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.133 ms     1.13 ns/eval
+  NumPy (SIMD / C, hand-optimised)                2.824 ms     2.82 ns/eval
+  SymPy lambdify → numpy backend                  2.763 ms     2.76 ns/eval
+
+  JIT bulk  vs NumPy:  1.51x faster
+  JIT batch vs NumPy:  2.49x faster
+
+  Accuracy  bulk  max|Δ|=0.00e+00  ✔
+            batch max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~2 ops → ~15 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  2. Degree-4 polynomial  (x-y)^4  [2 vars]
+  x^4 - 4*x^3*y + 6*x^2*y^2 - 4*x*y^3 + y^4
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.729 ms     2.73 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.276 ms     1.28 ns/eval
+  NumPy (SIMD / C, hand-optimised)               19.207 ms    19.21 ns/eval
+  SymPy lambdify → numpy backend                 18.933 ms    18.93 ns/eval
+
+  JIT bulk  vs NumPy:  7.04x faster
+  JIT batch vs NumPy: 15.06x faster
+
+  Accuracy  bulk  max|Δ|=5.46e-12  ✔
+            batch max|Δ|=5.46e-12  ✔
+
+  NumPy intermediate arrays: ~16 ops → ~122 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  3. Cubic surface  [3 vars, 10 terms]
+  x^3 + y^3 + z^3 - 3*x*y*z + x^2*y - x*y^2 + y^2*z - y*z^2 + z^2*x - z*x^2
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              3.733 ms     3.73 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.772 ms     1.77 ns/eval
+  NumPy (SIMD / C, hand-optimised)               75.751 ms    75.75 ns/eval
+  SymPy lambdify → numpy backend                 78.214 ms    78.21 ns/eval
+
+  JIT bulk  vs NumPy: 20.29x faster
+  JIT batch vs NumPy: 42.74x faster
+
+  Accuracy  bulk  max|Δ|=2.84e-13  ✔
+            batch max|Δ|=2.84e-13  ✔
+
+  NumPy intermediate arrays: ~27 ops → ~206 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  4. Rational w/ CSE  [2 vars, repeated subexpr]
+  (x^2 + y^2) / (x^2 + y^2 + 1.0) + x*y*(x^2 - y^2) / (x^2 + y^2 + 1.0)^2
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.534 ms     2.53 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.266 ms     1.27 ns/eval
+  NumPy (SIMD / C, hand-optimised)               15.913 ms    15.91 ns/eval
+  SymPy lambdify → numpy backend                 22.961 ms    22.96 ns/eval
+
+  JIT bulk  vs NumPy:  6.28x faster
+  JIT batch vs NumPy: 12.57x faster
+
+  Accuracy  bulk  max|Δ|=0.00e+00  ✔
+            batch max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~20 ops → ~153 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+==============================================================================
+  SUMMARY: JIT speedup vs hand-optimised NumPy
+  Expression                                          bulk     batch
+  ──────────────────────────────────────────────  ────────  ────────
+  1. Trivial (baseline)                             1.51x    2.49x
+  2. Degree-4 polynomial                            7.04x   15.06x
+  3. Cubic surface                                 20.29x   42.74x
+  4. Rational w/ CSE                                6.28x   12.57x
+
+  Observation: speedup grows with expression complexity because
+  NumPy&#39;s intermediate arrays overflow L2/L3 cache at N=1,000,000.
+  JIT maintains register-resident computation across the entire
+  expression, paying one memory read/write per input element.
+==============================================================================</code></pre>
+<p>I ran it in Python using CPython FFI, so it is significantly slower
+than if it were compiled into a Rust binary—but for the sake of
+fairness, I have kept it as is.</p>
+<p>Also from our docs: <strong>Architecture</strong> | Module | Role |
+|——–|——| | [<code>dag</code>] | Hash-consed expression DAG — the
+canonical, deduplicated store for all symbolic nodes | |
+[<code>ast</code>] | Lightweight local tree projection of a DAG subgraph
+via relative <code>i32</code> pointers | | [<code>parser</code>] |
+<code>nom</code>-based infix parser: <code>"x^2 + 2*x + 1"</code> → DAG
+root | | [<code>jit</code>] <em>(feature:
+<code>cranelift-jit</code>/<code>jit</code>)</em> | Cranelift JIT; emits
+scalar <code>f64</code> closures and 2-row ILP batch functions | |
+[<code>heuristic</code>] | Configurable greedy/beam simplifier with a
+pluggable [<code>heuristic::rule_registry::RuleRegistry</code>] | |
+[<code>egraph</code>] | Lightweight equality saturation over the DAG (no
+<code>egg</code> dependency) | | [<code>custom</code>] | Unified
+custom-operator system — one
+[<code>custom::descriptor::CustomOpDescriptor</code>] wires into JIT +
+simplifier + e-graph | | [<code>simd</code>] | Slice-level batch
+arithmetic using the inline-asm presets | | [<code>asm_presets</code>] |
+Hand-written <code>f64×2</code> / <code>f64×4</code> kernels for
+<code>x86_64</code> (SSE2/AVX2/AES-NI), <code>AArch64</code>
+(NEON/crypto), riscv64 (RVV/Zkn) | | [<code>ffi</code>] | Flat
+<code>extern "C"</code> surface generated by <code>cbindgen</code>;
+includes a fiber-backed async bridge | | [<code>parallel</code>] |
+Fiber-based parallel simplification via the <code>dtact</code> runtime |
+| [<code>storage</code>] | Disk-backed DAG spillover and a
+frequency-based hot-node cache | | [<code>error</code>] | Cold-path
+error types and the <code>rssn_error!</code> macro |</p>
+<h2 id="bincode-next-1">Bincode-next</h2>
+<p>Finally, a small update for <code>bincode-next</code> at the end of
+this post to avoid posting too frequently. <code>Bincode-next</code> has
+released v3.0.0-rc.15, and we are continuously fuzzing. We have decided
+to release the stable version after joining the OSS-Fuzz project and
+running it for a while. Link:
+https://github.com/Apich-Organization/bincode</p>
+<h2 id="common-links-1">Common Links</h2>
+<p>Discord Server: https://discord.gg/D5e2czMTT9 Contact E-mail:
+info@apich.org OSSF Registration (bincode-next):
+https://www.bestpractices.dev/projects/12960 OSSF Registration (dtact):
+https://www.bestpractices.dev/en/projects/12962/passing Score Card:
+https://securityscorecards.dev/viewer/?uri=github.com/Apich-Organization/bincode
+Discussions on Dtact style designs:
+https://users.rust-lang.org/t/discussion-on-synchronous-crate-concurrency-refactor-using-stackful-coroutines-model-in-rust/139246</p>
+</details>
+<details>
+<summary>
+Commit: 0fa7419 | Date: 2026-05-29
+</summary>
+<h1 id="releasing-dtact-v0.2.2-and-rssn-advanced-v0.1.0-3">Releasing
+dtact v0.2.2 and rssn-advanced v0.1.0</h1>
+<p><strong>Hello Rustaceans!</strong></p>
+<p>Today we are releasing dtact v0.2.2 and rssn-advanced v0.1.0, both of
+which are experimental, high-performance projects currently under
+development. Dtact is an async concurrent engine, and rssn-advanced is a
+new generation symbolic core for rssn. Both will be detailed below.</p>
+<h2 id="dtact-2">Dtact</h2>
+<p>Dtact is a coordinative, truly lockless async runtime designed for
+maximum work coordination speed and the highest throughput. In short, we
+mainly utilized a P2P network, a Lock-Free Context Arena, and a
+Zero-Copy Future Migration to achieve this. For a detailed analysis of
+the architecture, please refer to https://dtact.apich.org/ and
+https://github.com/Apich-Organization/dtact. The website’s UI was
+written by AI—because we really aren’t that good at writing UI, so
+please forgive us for that. A detailed benchmark report and CI run links
+can also be found on the official website, but in short, we can see the
+following chart (CI run:
+https://github.com/Apich-Organization/dtact/actions/runs/26011780070/job/76453764923):</p>
+<h3 id="task-spawn-efficiency-2">Task Spawn Efficiency</h3>
+<p>This benchmark measures the time required to spawn and execute a
+batch of asynchronous tasks.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Task Scale</th>
+<th>Runtime</th>
+<th>Min Bound</th>
+<th>Mean</th>
+<th>Max Bound</th>
+<th>Dtact Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>1M</strong></td>
+<td>Dtact</td>
+<td>103.92 ms</td>
+<td>104.92 ms</td>
+<td>105.94 ms</td>
+<td><br><strong>6.31x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Tokio</td>
+<td>648.02 ms</td>
+<td>662.11 ms</td>
+<td>676.42 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>100k</strong></td>
+<td>Dtact</td>
+<td>11.667 ms</td>
+<td>11.807 ms</td>
+<td>11.954 ms</td>
+<td><br><strong>5.34x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Tokio</td>
+<td>61.064 ms</td>
+<td>63.067 ms</td>
+<td>65.043 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>10k</strong></td>
+<td>Dtact</td>
+<td>1.9672 ms</td>
+<td>2.0144 ms</td>
+<td>2.0620 ms</td>
+<td><br><strong>2.63x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Tokio</td>
+<td>5.1595 ms</td>
+<td>5.2986 ms</td>
+<td>5.4395 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>1k</strong></td>
+<td>Dtact</td>
+<td>152.301 µs</td>
+<td>157.731 µs</td>
+<td>163.311 µs</td>
+<td><br><strong>4.76x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Tokio</td>
+<td>719.65 µs</td>
+<td>750.891 µs</td>
+<td>783.411 µs</td>
+<td>Reference</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="yield-efficiency-2">Yield Efficiency</h3>
+<p>This test measures the time taken for 10 concurrent tasks to perform
+100 cooperative <code>yield_now</code> operations each.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Test Case</th>
+<th>Runtime</th>
+<th>Min Bound</th>
+<th>Mean</th>
+<th>Max Bound</th>
+<th>Comparison</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>10 tasks</strong></td>
+<td>Dtact</td>
+<td>795.651 µs</td>
+<td>827.511 µs</td>
+<td>860.191 µs</td>
+<td>~4.41x slower</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Tokio</td>
+<td>179.981 µs</td>
+<td>187.731 µs</td>
+<td>195.651 µs</td>
+<td><br><strong>4.41x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="work-deflection-hot-core-performance-2">Work Deflection (Hot
+Core) Performance</h3>
+<p>This benchmark simulates task dispatching and throttle coordination
+under heavy load imbalances across a multi-core scheduler.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Task Scale</th>
+<th>Runtime</th>
+<th>Min Bound</th>
+<th>Mean</th>
+<th>Max Bound</th>
+<th>Dtact Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>10M</strong></td>
+<td>Dtact</td>
+<td>1.6624 s</td>
+<td>1.6792 s</td>
+<td>1.6962 s</td>
+<td><br><strong>4.13x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Tokio</td>
+<td>6.8482 s</td>
+<td>6.9386 s</td>
+<td>7.0291 s</td>
+<td>Reference</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>100k</strong></td>
+<td>Dtact</td>
+<td>17.472 ms</td>
+<td>17.659 ms</td>
+<td>17.847 ms</td>
+<td><br><strong>2.84x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Tokio</td>
+<td>49.110 ms</td>
+<td>51.112 ms</td>
+<td>53.114 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>10k</strong></td>
+<td>Dtact</td>
+<td>2.4961 ms</td>
+<td>2.5315 ms</td>
+<td>2.5675 ms</td>
+<td><br><strong>2.31x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Tokio</td>
+<td>5.7240 ms</td>
+<td>5.8411 ms</td>
+<td>5.9605 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>1k</strong></td>
+<td>Dtact</td>
+<td>273.791 µs</td>
+<td>285.231 µs</td>
+<td>297.07 µs</td>
+<td><br><strong>2.70x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Tokio</td>
+<td>739.641 µs</td>
+<td>769.841 µs</td>
+<td>801.701 µs</td>
+<td>Reference</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>The extensive use of <code>unsafe</code> and naked assembly in dtact
+may cause some doubt about this project, but we are striving to achieve
+higher engineering goals to ensure the project remains safe, and we are
+continually working on it. Also, special thanks to <span
+class="citation" data-cites="newpavlov">@newpavlov</span> and <span
+class="citation" data-cites="SkiFire13">@SkiFire13</span> for their
+helpful advice when we first tried the stackful approach in the
+bincode-next UAF backend async fiber module.</p>
+<h2 id="rssn-advanced-2">rssn-advanced</h2>
+<p>This project is highly experimental and is eager for external
+reviews. Its core design is my own, but it was primarily complemented by
+<span class="citation" data-cites="cn-starlabs">@cn-starlabs</span> (it
+seems he doesn’t even have a Rust-lang user account) with the help of
+Claude. After performing some architectural fixes and code quality
+improvements myself, I decided to release it alongside dtact.
+Regardless, the project currently lacks extensive code reviews and is in
+an early stage, even without fully meeting OSSF standards. However, I
+personally think it is impressive to see a full JIT symbolic computing
+engine with almost infinite extensibility that truly achieves a
+combination of symbolic and numerical computing. The official website is
+also under development, so you might prefer to check the repository
+first: https://github.com/Apich-Organization/rssn-advanced or checkout
+https://rssn-advanced.apich.org And the first performance reports:</p>
+<pre class="text"><code>==============================================================================
+   RSSN-Advanced JIT vs NumPy — Bulk Evaluation Benchmark
+   N = 1,000,000 rows per expression  |  5 repeats, best time reported
+==============================================================================
+
+──────────────────────────────────────────────────────────────────────────────
+  1. Trivial (baseline)
+  x + y + 10.0
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              1.868 ms     1.87 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.133 ms     1.13 ns/eval
+  NumPy (SIMD / C, hand-optimised)                2.824 ms     2.82 ns/eval
+  SymPy lambdify → numpy backend                  2.763 ms     2.76 ns/eval
+
+  JIT bulk  vs NumPy:  1.51x faster
+  JIT batch vs NumPy:  2.49x faster
+
+  Accuracy  bulk  max|Δ|=0.00e+00  ✔
+            batch max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~2 ops → ~15 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  2. Degree-4 polynomial  (x-y)^4  [2 vars]
+  x^4 - 4*x^3*y + 6*x^2*y^2 - 4*x*y^3 + y^4
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.729 ms     2.73 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.276 ms     1.28 ns/eval
+  NumPy (SIMD / C, hand-optimised)               19.207 ms    19.21 ns/eval
+  SymPy lambdify → numpy backend                 18.933 ms    18.93 ns/eval
+
+  JIT bulk  vs NumPy:  7.04x faster
+  JIT batch vs NumPy: 15.06x faster
+
+  Accuracy  bulk  max|Δ|=5.46e-12  ✔
+            batch max|Δ|=5.46e-12  ✔
+
+  NumPy intermediate arrays: ~16 ops → ~122 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  3. Cubic surface  [3 vars, 10 terms]
+  x^3 + y^3 + z^3 - 3*x*y*z + x^2*y - x*y^2 + y^2*z - y*z^2 + z^2*x - z*x^2
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              3.733 ms     3.73 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.772 ms     1.77 ns/eval
+  NumPy (SIMD / C, hand-optimised)               75.751 ms    75.75 ns/eval
+  SymPy lambdify → numpy backend                 78.214 ms    78.21 ns/eval
+
+  JIT bulk  vs NumPy: 20.29x faster
+  JIT batch vs NumPy: 42.74x faster
+
+  Accuracy  bulk  max|Δ|=2.84e-13  ✔
+            batch max|Δ|=2.84e-13  ✔
+
+  NumPy intermediate arrays: ~27 ops → ~206 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  4. Rational w/ CSE  [2 vars, repeated subexpr]
+  (x^2 + y^2) / (x^2 + y^2 + 1.0) + x*y*(x^2 - y^2) / (x^2 + y^2 + 1.0)^2
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.534 ms     2.53 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.266 ms     1.27 ns/eval
+  NumPy (SIMD / C, hand-optimised)               15.913 ms    15.91 ns/eval
+  SymPy lambdify → numpy backend                 22.961 ms    22.96 ns/eval
+
+  JIT bulk  vs NumPy:  6.28x faster
+  JIT batch vs NumPy: 12.57x faster
+
+  Accuracy  bulk  max|Δ|=0.00e+00  ✔
+            batch max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~20 ops → ~153 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+==============================================================================
+  SUMMARY: JIT speedup vs hand-optimised NumPy
+  Expression                                          bulk     batch
+  ──────────────────────────────────────────────  ────────  ────────
+  1. Trivial (baseline)                             1.51x    2.49x
+  2. Degree-4 polynomial                            7.04x   15.06x
+  3. Cubic surface                                 20.29x   42.74x
+  4. Rational w/ CSE                                6.28x   12.57x
+
+  Observation: speedup grows with expression complexity because
+  NumPy&#39;s intermediate arrays overflow L2/L3 cache at N=1,000,000.
+  JIT maintains register-resident computation across the entire
+  expression, paying one memory read/write per input element.
+==============================================================================</code></pre>
+<p>I ran it in Python using CPython FFI, so it is significantly slower
+than if it were compiled into a Rust binary—but for the sake of
+fairness, I have kept it as is.</p>
+<p>Also from our docs: <strong>Architecture</strong> | Module | Role |
+|——–|——| | [<code>dag</code>] | Hash-consed expression DAG — the
+canonical, deduplicated store for all symbolic nodes | |
+[<code>ast</code>] | Lightweight local tree projection of a DAG subgraph
+via relative <code>i32</code> pointers | | [<code>parser</code>] |
+<code>nom</code>-based infix parser: <code>"x^2 + 2*x + 1"</code> → DAG
+root | | [<code>jit</code>] <em>(feature:
+<code>cranelift-jit</code>/<code>jit</code>)</em> | Cranelift JIT; emits
+scalar <code>f64</code> closures and 2-row ILP batch functions | |
+[<code>heuristic</code>] | Configurable greedy/beam simplifier with a
+pluggable [<code>heuristic::rule_registry::RuleRegistry</code>] | |
+[<code>egraph</code>] | Lightweight equality saturation over the DAG (no
+<code>egg</code> dependency) | | [<code>custom</code>] | Unified
+custom-operator system — one
+[<code>custom::descriptor::CustomOpDescriptor</code>] wires into JIT +
+simplifier + e-graph | | [<code>simd</code>] | Slice-level batch
+arithmetic using the inline-asm presets | | [<code>asm_presets</code>] |
+Hand-written <code>f64×2</code> / <code>f64×4</code> kernels for
+<code>x86_64</code> (SSE2/AVX2/AES-NI), <code>AArch64</code>
+(NEON/crypto), riscv64 (RVV/Zkn) | | [<code>ffi</code>] | Flat
+<code>extern "C"</code> surface generated by <code>cbindgen</code>;
+includes a fiber-backed async bridge | | [<code>parallel</code>] |
+Fiber-based parallel simplification via the <code>dtact</code> runtime |
+| [<code>storage</code>] | Disk-backed DAG spillover and a
+frequency-based hot-node cache | | [<code>error</code>] | Cold-path
+error types and the <code>rssn_error!</code> macro |</p>
+<h2 id="bincode-next-2">Bincode-next</h2>
+<p>Finally, a small update for <code>bincode-next</code> at the end of
+this post to avoid posting too frequently. <code>Bincode-next</code> has
+released v3.0.0-rc.15, and we are continuously fuzzing. We have decided
+to release the stable version after joining the OSS-Fuzz project and
+running it for a while. Link:
+https://github.com/Apich-Organization/bincode</p>
+<h2 id="common-links-2">Common Links</h2>
+<p>Discord Server: https://discord.gg/D5e2czMTT9 Contact E-mail:
+info@apich.org OSSF Registration (bincode-next):
+https://www.bestpractices.dev/projects/12960 OSSF Registration (dtact):
+https://www.bestpractices.dev/en/projects/12962/passing Score Card:
+https://securityscorecards.dev/viewer/?uri=github.com/Apich-Organization/bincode
+Discussions on Dtact style designs:
+https://users.rust-lang.org/t/discussion-on-synchronous-crate-concurrency-refactor-using-stackful-coroutines-model-in-rust/139246</p>
+</details>
+<details>
+<summary>
+Commit: 5693a83 | Date: 2026-05-29
+</summary>
+<p><strong>Hello Rustaceans!</strong></p>
+<p>Today we are releasing dtact v0.2.2 and rssn-advanced v0.1.0, both of
+which are experimental, high-performance projects currently under
+development. Dtact is an async concurrent engine, and rssn-advanced is a
+new generation symbolic core for rssn. Both will be detailed below.</p>
+<h2 id="dtact-3">Dtact</h2>
+<p>Dtact is a coordinative, truly lockless async runtime designed for
+maximum work coordination speed and the highest throughput. In short, we
+mainly utilized a P2P network, a Lock-Free Context Arena, and a
+Zero-Copy Future Migration to achieve this. For a detailed analysis of
+the architecture, please refer to https://dtact.apich.org/ and
+https://github.com/Apich-Organization/dtact. The website’s UI was
+written by AI—because we really aren’t that good at writing UI, so
+please forgive us for that. A detailed benchmark report and CI run links
+can also be found on the official website, but in short, we can see the
+following chart (CI run:
+https://github.com/Apich-Organization/dtact/actions/runs/26011780070/job/76453764923):</p>
+<h3 id="task-spawn-efficiency-3">Task Spawn Efficiency</h3>
+<p>This benchmark measures the time required to spawn and execute a
+batch of asynchronous tasks.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Task Scale</th>
+<th>Runtime</th>
+<th>Min Bound</th>
+<th>Mean</th>
+<th>Max Bound</th>
+<th>Dtact Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>1M</strong></td>
+<td>Dtact</td>
+<td>103.92 ms</td>
+<td>104.92 ms</td>
+<td>105.94 ms</td>
+<td><br><strong>6.31x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Tokio</td>
+<td>648.02 ms</td>
+<td>662.11 ms</td>
+<td>676.42 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>100k</strong></td>
+<td>Dtact</td>
+<td>11.667 ms</td>
+<td>11.807 ms</td>
+<td>11.954 ms</td>
+<td><br><strong>5.34x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Tokio</td>
+<td>61.064 ms</td>
+<td>63.067 ms</td>
+<td>65.043 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>10k</strong></td>
+<td>Dtact</td>
+<td>1.9672 ms</td>
+<td>2.0144 ms</td>
+<td>2.0620 ms</td>
+<td><br><strong>2.63x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Tokio</td>
+<td>5.1595 ms</td>
+<td>5.2986 ms</td>
+<td>5.4395 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>1k</strong></td>
+<td>Dtact</td>
+<td>152.301 µs</td>
+<td>157.731 µs</td>
+<td>163.311 µs</td>
+<td><br><strong>4.76x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Tokio</td>
+<td>719.65 µs</td>
+<td>750.891 µs</td>
+<td>783.411 µs</td>
+<td>Reference</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="yield-efficiency-3">Yield Efficiency</h3>
+<p>This test measures the time taken for 10 concurrent tasks to perform
+100 cooperative <code>yield_now</code> operations each.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Test Case</th>
+<th>Runtime</th>
+<th>Min Bound</th>
+<th>Mean</th>
+<th>Max Bound</th>
+<th>Comparison</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>10 tasks</strong></td>
+<td>Dtact</td>
+<td>795.651 µs</td>
+<td>827.511 µs</td>
+<td>860.191 µs</td>
+<td>~4.41x slower</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Tokio</td>
+<td>179.981 µs</td>
+<td>187.731 µs</td>
+<td>195.651 µs</td>
+<td><br><strong>4.41x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="work-deflection-hot-core-performance-3">Work Deflection (Hot
+Core) Performance</h3>
+<p>This benchmark simulates task dispatching and throttle coordination
+under heavy load imbalances across a multi-core scheduler.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Task Scale</th>
+<th>Runtime</th>
+<th>Min Bound</th>
+<th>Mean</th>
+<th>Max Bound</th>
+<th>Dtact Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>10M</strong></td>
+<td>Dtact</td>
+<td>1.6624 s</td>
+<td>1.6792 s</td>
+<td>1.6962 s</td>
+<td><br><strong>4.13x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Tokio</td>
+<td>6.8482 s</td>
+<td>6.9386 s</td>
+<td>7.0291 s</td>
+<td>Reference</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>100k</strong></td>
+<td>Dtact</td>
+<td>17.472 ms</td>
+<td>17.659 ms</td>
+<td>17.847 ms</td>
+<td><br><strong>2.84x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Tokio</td>
+<td>49.110 ms</td>
+<td>51.112 ms</td>
+<td>53.114 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>10k</strong></td>
+<td>Dtact</td>
+<td>2.4961 ms</td>
+<td>2.5315 ms</td>
+<td>2.5675 ms</td>
+<td><br><strong>2.31x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Tokio</td>
+<td>5.7240 ms</td>
+<td>5.8411 ms</td>
+<td>5.9605 ms</td>
+<td>Reference</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td><strong>1k</strong></td>
+<td>Dtact</td>
+<td>273.791 µs</td>
+<td>285.231 µs</td>
+<td>297.07 µs</td>
+<td><br><strong>2.70x faster</strong></td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>Tokio</td>
+<td>739.641 µs</td>
+<td>769.841 µs</td>
+<td>801.701 µs</td>
+<td>Reference</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>The extensive use of <code>unsafe</code> and naked assembly in dtact
+may cause some doubt about this project, but we are striving to achieve
+higher engineering goals to ensure the project remains safe, and we are
+continually working on it. Also, special thanks to <span
+class="citation" data-cites="newpavlov">@newpavlov</span> and <span
+class="citation" data-cites="SkiFire13">@SkiFire13</span> for their
+helpful advice when we first tried the stackful approach in the
+bincode-next UAF backend async fiber module.</p>
+<h2 id="rssn-advanced-3">rssn-advanced</h2>
+<p>This project is highly experimental and is eager for external
+reviews. Its core design is my own, but it was primarily complemented by
+<span class="citation" data-cites="cn-starlabs">@cn-starlabs</span> (it
+seems he doesn’t even have a Rust-lang user account) with the help of
+Claude. After performing some architectural fixes and code quality
+improvements myself, I decided to release it alongside dtact.
+Regardless, the project currently lacks extensive code reviews and is in
+an early stage, even without fully meeting OSSF standards. However, I
+personally think it is impressive to see a full JIT symbolic computing
+engine with almost infinite extensibility that truly achieves a
+combination of symbolic and numerical computing. The official website is
+also under development, so you might prefer to check the repository
+first: https://github.com/Apich-Organization/rssn-advanced or checkout
+https://rssn-advanced.apich.org And the first performance reports:</p>
+<pre class="text"><code>==============================================================================
+   RSSN-Advanced JIT vs NumPy — Bulk Evaluation Benchmark
+   N = 1,000,000 rows per expression  |  5 repeats, best time reported
+==============================================================================
+
+──────────────────────────────────────────────────────────────────────────────
+  1. Trivial (baseline)
+  x + y + 10.0
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              1.868 ms     1.87 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.133 ms     1.13 ns/eval
+  NumPy (SIMD / C, hand-optimised)                2.824 ms     2.82 ns/eval
+  SymPy lambdify → numpy backend                  2.763 ms     2.76 ns/eval
+
+  JIT bulk  vs NumPy:  1.51x faster
+  JIT batch vs NumPy:  2.49x faster
+
+  Accuracy  bulk  max|Δ|=0.00e+00  ✔
+            batch max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~2 ops → ~15 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  2. Degree-4 polynomial  (x-y)^4  [2 vars]
+  x^4 - 4*x^3*y + 6*x^2*y^2 - 4*x*y^3 + y^4
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.729 ms     2.73 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.276 ms     1.28 ns/eval
+  NumPy (SIMD / C, hand-optimised)               19.207 ms    19.21 ns/eval
+  SymPy lambdify → numpy backend                 18.933 ms    18.93 ns/eval
+
+  JIT bulk  vs NumPy:  7.04x faster
+  JIT batch vs NumPy: 15.06x faster
+
+  Accuracy  bulk  max|Δ|=5.46e-12  ✔
+            batch max|Δ|=5.46e-12  ✔
+
+  NumPy intermediate arrays: ~16 ops → ~122 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  3. Cubic surface  [3 vars, 10 terms]
+  x^3 + y^3 + z^3 - 3*x*y*z + x^2*y - x*y^2 + y^2*z - y*z^2 + z^2*x - z*x^2
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              3.733 ms     3.73 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.772 ms     1.77 ns/eval
+  NumPy (SIMD / C, hand-optimised)               75.751 ms    75.75 ns/eval
+  SymPy lambdify → numpy backend                 78.214 ms    78.21 ns/eval
+
+  JIT bulk  vs NumPy: 20.29x faster
+  JIT batch vs NumPy: 42.74x faster
+
+  Accuracy  bulk  max|Δ|=2.84e-13  ✔
+            batch max|Δ|=2.84e-13  ✔
+
+  NumPy intermediate arrays: ~27 ops → ~206 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+──────────────────────────────────────────────────────────────────────────────
+  4. Rational w/ CSE  [2 vars, repeated subexpr]
+  (x^2 + y^2) / (x^2 + y^2 + 1.0) + x*y*(x^2 - y^2) / (x^2 + y^2 + 1.0)^2
+──────────────────────────────────────────────────────────────────────────────
+  Rust JIT bulk  (scalar, Rust loop)              2.534 ms     2.53 ns/eval
+  Rust JIT batch (2-row ILP vectorised)           1.266 ms     1.27 ns/eval
+  NumPy (SIMD / C, hand-optimised)               15.913 ms    15.91 ns/eval
+  SymPy lambdify → numpy backend                 22.961 ms    22.96 ns/eval
+
+  JIT bulk  vs NumPy:  6.28x faster
+  JIT batch vs NumPy: 12.57x faster
+
+  Accuracy  bulk  max|Δ|=0.00e+00  ✔
+            batch max|Δ|=0.00e+00  ✔
+
+  NumPy intermediate arrays: ~20 ops → ~153 MB peak temp memory
+  JIT: 0 intermediate arrays — all values kept in CPU registers
+
+==============================================================================
+  SUMMARY: JIT speedup vs hand-optimised NumPy
+  Expression                                          bulk     batch
+  ──────────────────────────────────────────────  ────────  ────────
+  1. Trivial (baseline)                             1.51x    2.49x
+  2. Degree-4 polynomial                            7.04x   15.06x
+  3. Cubic surface                                 20.29x   42.74x
+  4. Rational w/ CSE                                6.28x   12.57x
+
+  Observation: speedup grows with expression complexity because
+  NumPy&#39;s intermediate arrays overflow L2/L3 cache at N=1,000,000.
+  JIT maintains register-resident computation across the entire
+  expression, paying one memory read/write per input element.
+==============================================================================</code></pre>
+<p>I ran it in Python using CPython FFI, so it is significantly slower
+than if it were compiled into a Rust binary—but for the sake of
+fairness, I have kept it as is.</p>
+<p>Also from our docs: <strong>Architecture</strong> | Module | Role |
+|——–|——| | [<code>dag</code>] | Hash-consed expression DAG — the
+canonical, deduplicated store for all symbolic nodes | |
+[<code>ast</code>] | Lightweight local tree projection of a DAG subgraph
+via relative <code>i32</code> pointers | | [<code>parser</code>] |
+<code>nom</code>-based infix parser: <code>"x^2 + 2*x + 1"</code> → DAG
+root | | [<code>jit</code>] <em>(feature:
+<code>cranelift-jit</code>/<code>jit</code>)</em> | Cranelift JIT; emits
+scalar <code>f64</code> closures and 2-row ILP batch functions | |
+[<code>heuristic</code>] | Configurable greedy/beam simplifier with a
+pluggable [<code>heuristic::rule_registry::RuleRegistry</code>] | |
+[<code>egraph</code>] | Lightweight equality saturation over the DAG (no
+<code>egg</code> dependency) | | [<code>custom</code>] | Unified
+custom-operator system — one
+[<code>custom::descriptor::CustomOpDescriptor</code>] wires into JIT +
+simplifier + e-graph | | [<code>simd</code>] | Slice-level batch
+arithmetic using the inline-asm presets | | [<code>asm_presets</code>] |
+Hand-written <code>f64×2</code> / <code>f64×4</code> kernels for
+<code>x86_64</code> (SSE2/AVX2/AES-NI), <code>AArch64</code>
+(NEON/crypto), riscv64 (RVV/Zkn) | | [<code>ffi</code>] | Flat
+<code>extern "C"</code> surface generated by <code>cbindgen</code>;
+includes a fiber-backed async bridge | | [<code>parallel</code>] |
+Fiber-based parallel simplification via the <code>dtact</code> runtime |
+| [<code>storage</code>] | Disk-backed DAG spillover and a
+frequency-based hot-node cache | | [<code>error</code>] | Cold-path
+error types and the <code>rssn_error!</code> macro |</p>
+<h2 id="bincode-next-3">Bincode-next</h2>
+<p>Finally, a small update for <code>bincode-next</code> at the end of
+this post to avoid posting too frequently. <code>Bincode-next</code> has
+released v3.0.0-rc.15, and we are continuously fuzzing. We have decided
+to release the stable version after joining the OSS-Fuzz project and
+running it for a while. Link:
+https://github.com/Apich-Organization/bincode</p>
+<h2 id="common-links-3">Common Links</h2>
+<p>Discord Server: https://discord.gg/D5e2czMTT9 Contact E-mail:
+info@apich.org OSSF Registration (bincode-next):
+https://www.bestpractices.dev/projects/12960 OSSF Registration (dtact):
+https://www.bestpractices.dev/en/projects/12962/passing Score Card:
+https://securityscorecards.dev/viewer/?uri=github.com/Apich-Organization/bincode
+Discussions on Dtact style designs:
+https://users.rust-lang.org/t/discussion-on-synchronous-crate-concurrency-refactor-using-stackful-coroutines-model-in-rust/139246</p>
+</details>
+<hr />
+<center>
+<small><a href="https://panayang.blog.apich.org">Back to main</a> |
+Copyright © 2026 Xinyu Yang</small>
+</center>
+</body>
+</html>

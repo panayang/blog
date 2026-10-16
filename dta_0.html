@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>dta_0</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<p><strong>Last Modified:</strong> <code>a3b537c</code> on
+2026-09-12</p>
+<h1 id="经过一些micro-opt优">经过一些micro opt，优</h1>
+<p>经过一些micro opt，优化后的dtact最新数据：</p>
+<p>Spawn Tasks - Dtact:</p>
+<p>1k mean:0.12301ms CV:26.7%</p>
+<p>10k mean:1.6299ms CV:24.3%</p>
+<p>100k mean:9.0277ms CV:7.8%</p>
+<p>1M mean:69.884ms CV:7.2%</p>
+<p>y = 0.15 * x^0.90</p>
+<p>r = 0.997</p>
+<p>Spawn Tasks - Tokio:</p>
+<p>1k mean:0.54454ms CV:22.6%</p>
+<p>10k mean:4.2720ms CV:17.1%</p>
+<p>100k mean:32.667ms CV:28.9%</p>
+<p>1M mean:418.93ms CV:15.7%</p>
+<p>y = 0.49 * x^0.95</p>
+<p>r = 0.998</p>
+<p>Load Balance (Hot Core) - Dtact:</p>
+<p>1k mean:0.14568ms CV:31.4%</p>
+<p>10k mean:1.8898ms CV:18.0%</p>
+<p>100k mean:10.260ms CV:9.2%</p>
+<p>1M mean:99.746ms CV:6.9%</p>
+<p>10M mean:940.77ms CV:7.5%</p>
+<p>y = 0.16 * x^0.93</p>
+<p>r = 0.999</p>
+<p>Load Balance (Hot Core) - Tokio:</p>
+<p>1k mean:0.53687ms CV:23.5%</p>
+<p>10k mean:4.3044ms CV:16.2%</p>
+<p>100k mean:33.673ms CV:18.2%</p>
+<p>1M mean:460.71ms CV:18.6%</p>
+<p>10M mean:4729.4ms CV:14.1%</p>
+<p>y = 0.46 * x^0.99</p>
+<p>r = 0.999</p>
+<p>比较遗憾的是还是临时在github
+runner跑的，有空做一下完整benchmark。</p>
+<p>DTA算法还在继续benchmark中，有空还得更纯粹的和work
+stealing对比对比跑benchmark，要不老被认为存在较大非算法因素。</p>
+<h3 id="history">History</h3>
+<details>
+<summary>
+Commit: a3b537c | Date: 2026-09-12
+</summary>
+<p>经过一些micro opt，优化后的dtact最新数据：</p>
+<p>Spawn Tasks - Dtact:</p>
+<p>1k mean:0.12301ms CV:26.7%</p>
+<p>10k mean:1.6299ms CV:24.3%</p>
+<p>100k mean:9.0277ms CV:7.8%</p>
+<p>1M mean:69.884ms CV:7.2%</p>
+<p>y = 0.15 * x^0.90</p>
+<p>r = 0.997</p>
+<p>Spawn Tasks - Tokio:</p>
+<p>1k mean:0.54454ms CV:22.6%</p>
+<p>10k mean:4.2720ms CV:17.1%</p>
+<p>100k mean:32.667ms CV:28.9%</p>
+<p>1M mean:418.93ms CV:15.7%</p>
+<p>y = 0.49 * x^0.95</p>
+<p>r = 0.998</p>
+<p>Load Balance (Hot Core) - Dtact:</p>
+<p>1k mean:0.14568ms CV:31.4%</p>
+<p>10k mean:1.8898ms CV:18.0%</p>
+<p>100k mean:10.260ms CV:9.2%</p>
+<p>1M mean:99.746ms CV:6.9%</p>
+<p>10M mean:940.77ms CV:7.5%</p>
+<p>y = 0.16 * x^0.93</p>
+<p>r = 0.999</p>
+<p>Load Balance (Hot Core) - Tokio:</p>
+<p>1k mean:0.53687ms CV:23.5%</p>
+<p>10k mean:4.3044ms CV:16.2%</p>
+<p>100k mean:33.673ms CV:18.2%</p>
+<p>1M mean:460.71ms CV:18.6%</p>
+<p>10M mean:4729.4ms CV:14.1%</p>
+<p>y = 0.46 * x^0.99</p>
+<p>r = 0.999</p>
+<p>比较遗憾的是还是临时在github
+runner跑的，有空做一下完整benchmark。</p>
+<p>DTA算法还在继续benchmark中，有空还得更纯粹的和work
+stealing对比对比跑benchmark，要不老被认为存在较大非算法因素。</p>
+</details>
+<hr />
+<center>
+<small><a href="https://panayang.blog.apich.org">Back to main</a> |
+Copyright © 2026 Xinyu Yang</small>
+</center>
+</body>
+</html>

@@ -1,0 +1,28 @@
+**Last Modified:** `506dc6f` on 2026-09-29
+
+# Heteroromantic Asexual 问题
+
+# Heteroromantic Asexual 问题
+
+最近很多人似乎对我有强烈误解...
+
+我正式声明一下，我的正式身份认同是Heteroromantic Asexual（Het Ace）；所以希望以后有关误解少一点。
+
+以前的时候，出于怕被误解或议论的原因没太提到过，但是... 我发现不提的话现在误解更大，那就还是直接公开了吧。
+
+### History
+<details><summary>Commit: 506dc6f | Date: 2026-09-29</summary>
+
+# Heteroromantic Asexual 问题
+
+最近很多人似乎对我有强烈误解...
+
+我正式声明一下，我的正式身份认同是Heteroromantic Asexual（Het Ace）；所以希望以后有关误解少一点。
+
+以前的时候，出于怕被误解或议论的原因没太提到过，但是... 我发现不提的话现在误解更大，那就还是直接公开了吧。
+
+</details>
+
+
+---
+<center><small>[Back to main](https://panayang.blog.apich.org) | Copyright &copy; 2026 Xinyu Yang</small></center>
