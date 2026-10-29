@@ -4,42 +4,49 @@ import subprocess
 from datetime import datetime
 
 
+def ensure_full_git_history():
+    """Ensure the CI/CD clone has complete git history for accurate blame and log."""
+    try:
+        is_shallow = subprocess.check_output(
+            ["git", "rev-parse", "--is-shallow-repository"],
+            stderr=subprocess.DEVNULL,
+        ).decode().strip()
+        if is_shallow == "true":
+            subprocess.run(
+                ["git", "fetch", "--unshallow"],
+                check=False,
+                stderr=subprocess.DEVNULL,
+            )
+    except Exception:
+        pass
+
+
 def get_clean_title(content):
     line = content.strip().split("\n")[0].strip()
     if line.startswith("#"):
         return line.lstrip("#").strip()
-    return line[:15]
+    return line[:25]
 
 
-def parse_entries_with_lines(filepath):
+def parse_file_entries(content):
     """
-    Parses a markdown file split by '===' delimiters into entries,
-    recording the exact 1-indexed start and end line ranges in HEAD.
+    Splits content by `===` delimiter and tracks 1-based start and end line numbers.
     """
-    try:
-        content = subprocess.check_output(
-            ["git", "show", f"HEAD:{filepath}"]
-        ).decode("utf-8")
-    except subprocess.CalledProcessError:
-        return []
-
-    lines = content.splitlines(keepends=True)
+    raw_lines = content.splitlines(keepends=True)
     entries = []
     current_lines = []
     start_line = 1
 
-    for line_idx, line in enumerate(lines, start=1):
+    for line_idx, line in enumerate(raw_lines, start=1):
         if re.match(r"^\s*(?<!=)={3}(?!=)\s*$", line):
             text = "".join(current_lines).strip()
             if text:
-                entries.append(
-                    {
-                        "content": text,
-                        "title": get_clean_title(text),
-                        "start_line": start_line,
-                        "end_line": line_idx - 1,
-                    }
-                )
+                entries.append({
+                    "content": text,
+                    "title": get_clean_title(text),
+                    "start_line": start_line,
+                    "end_line": line_idx - 1,
+                })
             current_lines = []
             start_line = line_idx + 1
         else:
@@ -47,113 +54,73 @@ def parse_entries_with_lines(filepath):
 
     final_text = "".join(current_lines).strip()
     if final_text:
-        entries.append(
-            {
-                "content": final_text,
-                "title": get_clean_title(final_text),
-                "start_line": start_line,
-                "end_line": len(lines),
-            }
-        )
+        entries.append({
+            "content": final_text,
+            "title": get_clean_title(final_text),
+            "start_line": start_line,
+            "end_line": len(raw_lines),
+        })
 
     return entries
 
 
-def get_entry_blame_info(filepath, start_line, end_line):
+def get_file_blame_map(filepath):
     """
-    Runs git blame across the entry's line range to identify:
-    1. The latest modification commit & date touching this entry.
-    2. The original creation commit & date of this entry.
+    Runs `git blame --line-porcelain` once for the entire file.
+    Returns a dictionary mapping line_number (1-indexed) -> (commit_hash, timestamp).
     """
-    cmd = [
-        "git",
-        "blame",
-        "-L",
-        f"{start_line},{end_line}",
-        "--line-porcelain",
-        filepath,
-    ]
+    line_map = {}
     try:
-        raw = subprocess.check_output(cmd, stderr=subprocess.DEVNULL).decode(
-            "utf-8"
-        )
+        output = subprocess.check_output(
+            ["git", "blame", "--line-porcelain", filepath],
+            stderr=subprocess.DEVNULL,
+        ).decode("utf-8", errors="replace")
     except subprocess.CalledProcessError:
-        return None, None
-
-    latest_ts = 0
-    latest_hash = None
-    oldest_ts = float("inf")
-    oldest_hash = None
+        return line_map
 
     current_hash = None
+    current_time = 0
 
-    for line in raw.splitlines():
-        if len(line) == 40 and not line.startswith(" "):
-            current_hash = line.split()[0]
+    for line in output.splitlines():
+        if len(line) >= 40 and not line.startswith("\t") and " " in line:
+            parts = line.split()
+            if len(parts[0]) == 40:
+                current_hash = parts[0]
         elif line.startswith("author-time "):
-            ts = int(line.split()[1])
-            if ts > latest_ts:
-                latest_ts = ts
-                latest_hash = current_hash
-            if ts < oldest_ts:
-                oldest_ts = ts
-                oldest_hash = current_hash
+            current_time = int(line.split()[1])
+        elif line.startswith("\t"):
+            # A line starting with tab is the actual line content; signifies end of block
+            line_no = len(line_map) + 1
+            line_map[line_no] = {
+                "hash": current_hash or "0000000",
+                "time": current_time,
+            }
 
-    latest_date = (
-        datetime.fromtimestamp(latest_ts).strftime("%Y-%m-%d")
-        if latest_ts
-        else "Unknown"
-    )
-    oldest_date = (
-        datetime.fromtimestamp(oldest_ts).strftime("%Y-%m-%d")
-        if oldest_ts != float("inf")
-        else "Unknown"
-    )
-
-    return {
-        "latest": {"hash": latest_hash, "date": latest_date},
-        "created": {"hash": oldest_hash, "date": oldest_date},
-    }
+    return line_map
 
 
-def get_entry_line_history(filepath, start_line, end_line):
-    """
-    Uses git log -L to track historical revisions of this specific block.
-    Extracts each commit hash, date, and diff/patch for collapsible history.
-    """
-    cmd = [
-        "git",
-        "log",
-        "-L",
-        f"{start_line},{end_line}:{filepath}",
-        "--pretty=format:COMMIT:%H|%ad",
-        "--date=short",
-        "-p",
-    ]
+def get_commit_history_for_file(filepath):
+    """Fetches list of commits for the file sorted from newest to oldest."""
     try:
-        raw = subprocess.check_output(cmd, stderr=subprocess.DEVNULL).decode(
-            "utf-8"
-        )
+        log = subprocess.check_output(
+            ["git", "log", "--pretty=format:%H|%ad", "--date=short", filepath],
+            stderr=subprocess.DEVNULL,
+        ).decode("utf-8", errors="replace")
     except subprocess.CalledProcessError:
         return []
 
-    history = []
-    blocks = raw.split("COMMIT:")
-
-    for b in blocks:
-        b = b.strip()
-        if not b:
+    commits = []
+    for line in log.split("\n"):
+        if not line.strip():
             continue
-        lines = b.splitlines()
-        header = lines[0]
-        h, d = header.split("|")
-        patch = "\n".join(lines[1:]).strip()
-        history.append({"hash": h, "date": d, "patch": patch})
-
-    return history
+        h, d = line.split("|")
+        commits.append({"hash": h, "date": d})
+    return commits
 
 
 def build():
+    ensure_full_git_history()
+
     if not os.path.exists("dist"):
         os.makedirs("dist")
 
@@ -165,25 +132,56 @@ def build():
     if not os.path.exists("blog"):
         return
 
-    blogs = [f for f in os.listdir("blog") if f.endswith(".md")]
+    blogs = sorted([f for f in os.listdir("blog") if f.endswith(".md")])
     catalog = {}
 
     for b in blogs:
         filepath = os.path.join("blog", b)
-        entries = parse_entries_with_lines(filepath)
+
+        # Read current content
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                current_raw = f.read()
+        except IOError:
+            continue
+
+        entries = parse_file_entries(current_raw)
+        blame_map = get_file_blame_map(filepath)
+        file_commits = get_commit_history_for_file(filepath)
+
+        # Fallback timestamp from file if git blame yields nothing
+        fallback_date = file_commits[0]["date"] if file_commits else str(y)
+        fallback_hash = file_commits[0]["hash"] if file_commits else "HEAD"
 
         for idx, entry in enumerate(entries):
             filename = f"{b.replace('.md', '')}_{idx}"
-            blame = get_entry_blame_info(
-                filepath, entry["start_line"], entry["end_line"]
-            )
 
-            if blame and blame["latest"]["hash"]:
-                latest = blame["latest"]
-                created_year = blame["created"]["date"][:4]
-            else:
-                latest = {"hash": "0000000", "date": "Unknown"}
-                created_year = str(y)
+            # Calculate exact last-modified and creation time within entry lines
+            latest_ts = 0
+            latest_hash = fallback_hash
+            oldest_ts = float("inf")
+            oldest_hash = fallback_hash
+
+            for l_num in range(entry["start_line"], entry["end_line"] + 1):
+                info = blame_map.get(l_num)
+                if info and info["time"] > 0:
+                    if info["time"] > latest_ts:
+                        latest_ts = info["time"]
+                        latest_hash = info["hash"]
+                    if info["time"] < oldest_ts:
+                        oldest_ts = info["time"]
+                        oldest_hash = info["hash"]
+
+            latest_date = (
+                datetime.fromtimestamp(latest_ts).strftime("%Y-%m-%d")
+                if latest_ts > 0
+                else fallback_date
+            )
+            created_year = (
+                datetime.fromtimestamp(oldest_ts).strftime("%Y")
+                if oldest_ts != float("inf")
+                else fallback_date[:4]
+            )
 
             if created_year not in catalog:
                 catalog[created_year] = {}
@@ -193,40 +191,55 @@ def build():
             output_md = f"dist/{filename}.md"
             output_html = f"dist/{filename}.html"
 
-            md_content = f"**Last Modified:** `{latest['hash'][:7]}` on {latest['date']}\n\n"
-            md_content += f"# {entry['title']}\n\n{entry['content']}\n\n### Revision History\n\n"
+            md_content = f"**Last Modified:** `{latest_hash[:7]}` on {latest_date}\n\n"
+            md_content += f"# {entry['title']}\n\n{entry['content']}\n\n### History\n"
 
-            # Historical tracking via git log -L
-            history = get_entry_line_history(
-                filepath, entry["start_line"], entry["end_line"]
-            )
-            for rev in history:
-                md_content += (
-                    f"<details><summary>Commit: <code>{rev['hash'][:7]}</code> | "
-                    f"Date: {rev['date']}</summary>\n\n"
-                    f"```diff\n{rev['patch']}\n```\n\n</details>\n"
-                )
+            # Match revisions across past commits using title matching
+            # (Solves index shifting without relying on fragile line tracking)
+            last_recorded_content = None
+            for c in file_commits:
+                try:
+                    c_content = subprocess.check_output(
+                        ["git", "show", f"{c['hash']}:{filepath}"],
+                        stderr=subprocess.DEVNULL,
+                    ).decode("utf-8", errors="replace")
+                except subprocess.CalledProcessError:
+                    continue
+
+                past_entries = parse_file_entries(c_content)
+                matched_past = None
+
+                # 1. Match by exact title
+                for pe in past_entries:
+                    if pe["title"] == entry["title"]:
+                        matched_past = pe["content"]
+                        break
+
+                # 2. Fallback to index if title was changed or empty
+                if not matched_past and idx < len(past_entries):
+                    matched_past = past_entries[idx]["content"]
+
+                if matched_past and matched_past != last_recorded_content:
+                    md_content += (
+                        f"<details><summary>Commit: {c['hash'][:7]} | Date: {c['date']}</summary>\n\n"
+                        f"{matched_past}\n\n</details>\n"
+                    )
+                    last_recorded_content = matched_past
 
             with open(output_md, "w", encoding="utf-8") as f:
                 f.write(md_content + footer)
 
             subprocess.run(
-                [
-                    "pandoc",
-                    output_md,
-                    "--standalone",
-                    "--css=style.css",
-                    "-o",
-                    output_html,
-                ],
+                ["pandoc", output_md, "--standalone", "--css=style.css", "-o", output_html],
                 check=False,
             )
 
-            catalog[created_year][b].append(
-                {"title": entry["title"], "url": f"{filename}.html"}
-            )
+            catalog[created_year][b].append({
+                "title": entry["title"],
+                "url": f"{filename}.html",
+            })
 
-    # Generate yearly archive pages
+    # Yearly archive files
     for year, files in catalog.items():
         year_md = f"# Archive {year}\n\n"
         for b, posts in files.items():
@@ -238,18 +251,11 @@ def build():
             f.write(year_md + footer)
 
         subprocess.run(
-            [
-                "pandoc",
-                f"dist/{year}.md",
-                "--standalone",
-                "--css=style.css",
-                "-o",
-                f"dist/{year}.html",
-            ],
+            ["pandoc", f"dist/{year}.md", "--standalone", "--css=style.css", "-o", f"dist/{year}.html"],
             check=False,
         )
 
-    # Generate main index
+    # Index page
     index_md = "# Blog Index\n\n" + "\n".join(
         [f"* [{yr}](./{yr}.html)" for yr in sorted(catalog.keys(), reverse=True)]
     )
@@ -257,14 +263,7 @@ def build():
         f.write(index_md + footer)
 
     subprocess.run(
-        [
-            "pandoc",
-            "dist/index.md",
-            "--standalone",
-            "--css=style.css",
-            "-o",
-            "dist/index.html",
-        ],
+        ["pandoc", "dist/index.md", "--standalone", "--css=style.css", "-o", "dist/index.html"],
         check=False,
     )
 
