@@ -31,3 +31,9 @@ Untethered and open to all: take what resonates, build what you dream, and let t
 # 昨日发的中秋感伤
 
 秋风袭来，人永远在路上，在京沪线上，至死方休。
+
+===
+
+# 迟来的决定
+
+On October 2nd, 2026 — Pana's 5717th day, a prime-numbered day — he bequeathed all the intellectual property he had ever held unto the people, and made ready to depart. Yet in the end, uncertainty about his own convictions overcame him, and he chose to seek psychiatric counsel. The effect, however, only left him more halting still, until at last he came to feel that perhaps he had merely overthought things — that he had not, in truth, overthought them at all. A curious logic, to be sure. But be that as it may, one month hence — on November 3rd, 2026, another prime-numbered day, the 5749th — he would choose to leave. Perhaps there would be no Thanksgiving cards this year. No — there would be. Pana would send them ahead, into everyone's hands.
