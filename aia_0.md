@@ -1,0 +1,17 @@
+**Last Modified:** `b2b3dbe` on 2026-10-27
+
+# 我对ai在开源中的作用的态度
+
+首先声明一下，情况总是会变化的，且变化的会越来越快，因而我不会下断言，以下大概只代表我几个月乃至几周内的态度。
+
+对工具：工具的根本目的是为了使用，标准可以相对降低更多的交给ai。
+
+对库和基础设施：这些项目除了工具作用外，还有被学习的作用，为了保证教育的传递中有人的成分与把关（鉴于教育的目标也是培养新一代的人），需要更多的人类把关。
+
+### History
+
+*First recorded in commit `b2b3dbe` on 2026-10-27.*
+
+
+---
+<center><small>[Back to main](https://panayang.blog.apich.org) | Copyright &copy; 2026 Xinyu Yang</small></center>
