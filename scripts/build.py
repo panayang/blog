@@ -1,7 +1,65 @@
 import os
 import re
 import subprocess
+import sys
 from datetime import datetime
+
+
+# Pandoc 3.x treats a `---` / `---` pair anywhere in a document as a YAML
+# metadata block and aborts with a fatal "Could not parse YAML metadata" error
+# when the enclosed text is not valid YAML. Our posts (and the archived
+# revisions inside <details>) use `---` as horizontal rules, so on pandoc 3.x
+# some pages silently failed to convert. Disabling the `yaml_metadata_block`
+# extension keeps `---` a horizontal rule on pandoc 2.x and 3.x alike.
+PANDOC_READER = "markdown-yaml_metadata_block"
+# Allow testing against a specific pandoc binary (e.g. the CI one) via PANDOC.
+PANDOC = os.environ.get("PANDOC", "pandoc")
+
+
+def git_path(filepath):
+    """Git object paths always use forward slashes, even on Windows."""
+    return filepath.replace("\\", "/")
+
+
+def run_pandoc(source_md, output_html, pagetitle):
+    """Convert generated Markdown to standalone HTML, failing loudly on errors."""
+    command = [
+        PANDOC,
+        "--from",
+        PANDOC_READER,
+        "--standalone",
+        "--css=style.css",
+        # Keep long post titles (and the HTML) on single lines.
+        "--wrap=none",
+        "--metadata",
+        f"pagetitle={pagetitle}",
+        "-o",
+        output_html,
+        source_md,
+    ]
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+    except FileNotFoundError:
+        raise RuntimeError(
+            f"pandoc executable not found ({PANDOC!r}); install pandoc or "
+            "point the PANDOC environment variable at the binary."
+        )
+
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"pandoc failed on {source_md} (exit {result.returncode}):\n"
+            f"{result.stderr.strip() or '(no error output)'}"
+        )
+    if result.stderr.strip():
+        print(f"[pandoc] {source_md}: {result.stderr.strip()}", file=sys.stderr)
+    if not os.path.isfile(output_html) or os.path.getsize(output_html) == 0:
+        raise RuntimeError(f"pandoc produced no HTML for {source_md}")
 
 
 def ensure_full_git_history():
@@ -11,17 +69,19 @@ def ensure_full_git_history():
             subprocess.check_output(
                 ["git", "rev-parse", "--is-shallow-repository"],
                 stderr=subprocess.DEVNULL,
+                text=True,
+                timeout=30,
             )
-            .decode()
             .strip()
         )
         if is_shallow == "true":
             subprocess.run(
                 ["git", "fetch", "--unshallow"],
                 check=False,
-                stderr=subprocess.DEVNULL,
+                capture_output=True,
+                timeout=300,
             )
-    except Exception:
+    except (subprocess.SubprocessError, OSError):
         pass
 
 
@@ -75,7 +135,7 @@ def get_file_blame_map(filepath):
     line_map = {}
     try:
         output = subprocess.check_output(
-            ["git", "blame", "--line-porcelain", filepath],
+            ["git", "blame", "--line-porcelain", git_path(filepath)],
             stderr=subprocess.DEVNULL,
         ).decode("utf-8", errors="replace")
     except subprocess.CalledProcessError:
@@ -113,7 +173,7 @@ def get_commit_history_for_file(filepath):
                 "--pretty=format:%H|%ad",
                 "--date=short",
                 "--",
-                filepath,
+                git_path(filepath),
             ],
             stderr=subprocess.DEVNULL,
         ).decode("utf-8", errors="replace")
@@ -132,8 +192,7 @@ def get_commit_history_for_file(filepath):
 def build():
     ensure_full_git_history()
 
-    if not os.path.exists("dist"):
-        os.makedirs("dist")
+    os.makedirs("dist", exist_ok=True)
 
     y = datetime.now().year
     year_range = "2026" if y == 2026 else f"2026-{y}"
@@ -236,7 +295,7 @@ def build():
 
                 try:
                     c_content = subprocess.check_output(
-                        ["git", "show", f"{c['hash']}:{filepath}"],
+                        ["git", "show", f"{c['hash']}:{git_path(filepath)}"],
                         stderr=subprocess.DEVNULL,
                     ).decode("utf-8", errors="replace")
                 except subprocess.CalledProcessError:
@@ -269,17 +328,7 @@ def build():
             with open(output_md, "w", encoding="utf-8") as f:
                 f.write(md_content + footer)
 
-            subprocess.run(
-                [
-                    "pandoc",
-                    output_md,
-                    "--standalone",
-                    "--css=style.css",
-                    "-o",
-                    output_html,
-                ],
-                check=False,
-            )
+            run_pandoc(output_md, output_html, entry["title"])
 
             catalog[created_year][b].append(
                 {"title": entry["title"], "url": f"{filename}.html"}
@@ -296,17 +345,7 @@ def build():
         with open(f"dist/{year}.md", "w", encoding="utf-8") as f:
             f.write(year_md + footer)
 
-        subprocess.run(
-            [
-                "pandoc",
-                f"dist/{year}.md",
-                "--standalone",
-                "--css=style.css",
-                "-o",
-                f"dist/{year}.html",
-            ],
-            check=False,
-        )
+        run_pandoc(f"dist/{year}.md", f"dist/{year}.html", f"Archive {year}")
 
     # Blog index
     index_md = "# Blog Index\n\n" + "\n".join(
@@ -318,17 +357,7 @@ def build():
     with open("dist/index.md", "w", encoding="utf-8") as f:
         f.write(index_md + footer)
 
-    subprocess.run(
-        [
-            "pandoc",
-            "dist/index.md",
-            "--standalone",
-            "--css=style.css",
-            "-o",
-            "dist/index.html",
-        ],
-        check=False,
-    )
+    run_pandoc("dist/index.md", "dist/index.html", "Blog Index")
 
 
 if __name__ == "__main__":

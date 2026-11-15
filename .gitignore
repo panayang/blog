@@ -19,3 +19,10 @@ target
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+
+# Generated blog output (scripts/build.py writes dist/, CI deploys it to gh-pages)
+dist/
+
+# Local tooling artifacts
+__pycache__/
+.workbuddy-ai/

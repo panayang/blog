@@ -19,8 +19,20 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Pandoc
-        run: sudo apt-get install -y pandoc
+      # apt's pandoc jumps major versions whenever the runner image is upgraded
+      # (2.9.2.1 on Ubuntu 22.04 -> 3.1.3 on 24.04), which broke HTML generation.
+      # Fetch a fixed release so the build is reproducible and upgrades are
+      # deliberate rather than surprise side effects of a runner image update.
+      - name: Install Pandoc (pinned)
+        env:
+          PANDOC_VERSION: 3.8.3
+        run: |
+          curl -fsSL \
+            "https://github.com/jgm/pandoc/releases/download/${PANDOC_VERSION}/pandoc-${PANDOC_VERSION}-linux-amd64.tar.gz" \
+            -o /tmp/pandoc.tar.gz
+          tar -xzf /tmp/pandoc.tar.gz -C /tmp
+          echo "/tmp/pandoc-${PANDOC_VERSION}/bin" >> "$GITHUB_PATH"
+          "/tmp/pandoc-${PANDOC_VERSION}/bin/pandoc" --version | head -1
 
       - name: Build Blog
         run: |
